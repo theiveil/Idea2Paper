@@ -1,6 +1,7 @@
 <h1 align="center">
   <img src="assets/images/logo.png" alt="Idea2Paper Logo" width="140" style="vertical-align: middle; margin-right: 10px;">
    Idea2Paper:<br>
+   <br>
    Automated Pipeline for Transforming Research Concepts into Complete Scientific Narratives
 </h1>
 
