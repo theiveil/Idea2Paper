@@ -1,4 +1,8 @@
-# Idea2Paper
+
+<p align="center">
+  <img src="assets/images/logo2.png" alt="logo" width="750">
+</p>
+
 
 <div align="center">
 
@@ -89,11 +93,15 @@ python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"
   - `Paper-KG-Pipeline/scripts/idea2story_pipeline.py`
   - `Paper-KG-Pipeline/scripts/simple_recall_demo.py`
 - **Docs**:
-  - `Paper-KG-Pipeline/docs/00_PROJECT_OVERVIEW.md`
-  - `Paper-KG-Pipeline/docs/01_KG_CONSTRUCTION.md`
-  - `Paper-KG-Pipeline/docs/02_RECALL_SYSTEM.md`
-  - `Paper-KG-Pipeline/docs/03_IDEA2STORY_PIPELINE.md`
-- **Multi-Agent details**: `MULTIAGENT_REVIEW.md`
+
+| No. | Document | Content | Target Audience |
+| ----- |--------------------------| ---------------- | ------- |
+| **0** | [Project Overview](Paper-KG-Pipeline/docs/00_PROJECT_OVERVIEW_zh.md) | Overall architecture, core modules, parameter configuration, execution workflow | Everyone |
+| **1** | [Knowledge Graph Construction](docs/01_KG_CONSTRUCTION_zh.md) | Data sources, node/edge definitions, LLM enhancement, how to run | Developers |
+| **2** | [Retrieval System](docs/02_RECALL_SYSTEM_zh.md) | Three-way retrieval strategies, similarity computation, performance optimization | Developers |
+| **3** | [Idea2Story Pipeline](docs/03_IDEA2STORY_PIPELINE_zh.md) | Pattern selection, Idea fusion, story reflection, critic review | Developers |
+
+- **Multi-Agent details**: [MULTIAGENT_REVIEW.md](MULTIAGENT_REVIEW_zh.md)
 
 ## 🤝 Contributing / License
 
