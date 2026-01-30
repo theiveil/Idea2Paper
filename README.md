@@ -21,6 +21,7 @@ To address these challenges in a principled and engineering-oriented manner, Ide
 
  
 > **Idea2Paper** : [papers/Idea2Story.pdf](papers/Idea2Paper.pdf)
+
 > **Idea2Story** : https://arxiv.org/abs/2601.20833
 
 
