@@ -87,3 +87,97 @@ def get_embedding(text: str, logger=None, timeout: int = 120) -> Optional[List[f
                 }
             )
         return None
+
+
+def _preview_texts(texts: List[str], max_chars: int = 200) -> List[str]:
+    previews = []
+    for t in texts:
+        if t is None:
+            previews.append("")
+            continue
+        s = str(t)
+        if len(s) > max_chars:
+            previews.append(s[:max_chars] + "...(truncated)")
+        else:
+            previews.append(s)
+    return previews
+
+
+def get_embeddings_batch(texts: List[str], logger=None, timeout: int = 120) -> Optional[List[List[float]]]:
+    """Get embeddings for a batch of texts. Returns None on failure."""
+    if logger is None:
+        logger = get_logger()
+    start_ts = time.time()
+
+    if not LLM_API_KEY:
+        if logger:
+            logger.log_embedding_call(
+                request={
+                    "provider": "siliconflow",
+                    "url": EMBEDDING_URL,
+                    "model": EMBEDDING_MODEL,
+                    "input_preview": _preview_texts(texts),
+                    "timeout": timeout,
+                    "simulated": True,
+                    "batch_size": len(texts),
+                },
+                response={
+                    "ok": False,
+                    "latency_ms": int((time.time() - start_ts) * 1000),
+                    "error": "SILICONFLOW_API_KEY not configured"
+                }
+            )
+        return None
+
+    headers = {
+        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": EMBEDDING_MODEL,
+        "input": texts
+    }
+
+    try:
+        resp = requests.post(EMBEDDING_URL, headers=headers, json=payload, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        embs = [item["embedding"] for item in data.get("data", [])]
+        if len(embs) != len(texts):
+            raise ValueError(f"embedding batch size mismatch: got {len(embs)} expected {len(texts)}")
+        if logger:
+            logger.log_embedding_call(
+                request={
+                    "provider": "siliconflow",
+                    "url": EMBEDDING_URL,
+                    "model": EMBEDDING_MODEL,
+                    "input_preview": _preview_texts(texts),
+                    "timeout": timeout,
+                    "simulated": False,
+                    "batch_size": len(texts),
+                },
+                response={
+                    "ok": True,
+                    "latency_ms": int((time.time() - start_ts) * 1000)
+                }
+            )
+        return embs
+    except Exception as e:
+        if logger:
+            logger.log_embedding_call(
+                request={
+                    "provider": "siliconflow",
+                    "url": EMBEDDING_URL,
+                    "model": EMBEDDING_MODEL,
+                    "input_preview": _preview_texts(texts),
+                    "timeout": timeout,
+                    "simulated": False,
+                    "batch_size": len(texts),
+                },
+                response={
+                    "ok": False,
+                    "latency_ms": int((time.time() - start_ts) * 1000),
+                    "error": str(e)
+                }
+            )
+        return None

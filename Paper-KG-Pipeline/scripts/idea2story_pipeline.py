@@ -45,11 +45,26 @@ try:
         RESULTS_ENABLE,
         RESULTS_MODE,
         RESULTS_KEEP_LOG,
+        NOVELTY_ENABLE,
+        NOVELTY_INDEX_DIR,
+        NOVELTY_INDEX_BUILD_BATCH_SIZE,
+        NOVELTY_INDEX_BUILD_RESUME,
+        NOVELTY_INDEX_BUILD_MAX_RETRIES,
+        NOVELTY_INDEX_BUILD_SLEEP_SEC,
+        NOVELTY_REQUIRE_EMBEDDING,
     )
     from pipeline.config import PipelineConfig
     from idea2paper.infra.result_bundler import ResultBundler
+    from idea2paper.infra.index_preflight import (
+        validate_novelty_index,
+        validate_recall_index,
+        acquire_lock,
+    )
+    from idea2paper.infra.embeddings import EMBEDDING_MODEL
     from pipeline.run_logger import RunLogger
     from pipeline.run_context import set_logger, reset_logger
+    from tools.build_novelty_index import build_novelty_index
+    from tools.build_recall_index import build_recall_index
 except ImportError:
     # 如果直接运行脚本，尝试添加当前目录到 path
     import os
@@ -64,11 +79,108 @@ except ImportError:
         RESULTS_ENABLE,
         RESULTS_MODE,
         RESULTS_KEEP_LOG,
+        NOVELTY_ENABLE,
+        NOVELTY_INDEX_DIR,
+        NOVELTY_INDEX_BUILD_BATCH_SIZE,
+        NOVELTY_INDEX_BUILD_RESUME,
+        NOVELTY_INDEX_BUILD_MAX_RETRIES,
+        NOVELTY_INDEX_BUILD_SLEEP_SEC,
+        NOVELTY_REQUIRE_EMBEDDING,
     )
     from pipeline.config import PipelineConfig
     from idea2paper.infra.result_bundler import ResultBundler
+    from idea2paper.infra.index_preflight import (
+        validate_novelty_index,
+        validate_recall_index,
+        acquire_lock,
+    )
+    from idea2paper.infra.embeddings import EMBEDDING_MODEL
     from pipeline.run_logger import RunLogger
     from pipeline.run_context import set_logger, reset_logger
+    from tools.build_novelty_index import build_novelty_index
+    from tools.build_recall_index import build_recall_index
+
+
+def _log_event(logger, event_type: str, payload: dict):
+    if logger:
+        logger.log_event(event_type, payload)
+
+
+def ensure_required_indexes(logger=None):
+    if not PipelineConfig.INDEX_AUTO_PREPARE:
+        return
+
+    _log_event(logger, "index_preflight_start", {
+        "novelty_enable": NOVELTY_ENABLE,
+        "recall_use_offline_index": PipelineConfig.RECALL_USE_OFFLINE_INDEX,
+        "allow_build": PipelineConfig.INDEX_ALLOW_BUILD,
+    })
+
+    # Novelty index preflight
+    if NOVELTY_ENABLE:
+        nodes_paper_path = OUTPUT_DIR / "nodes_paper.json"
+        status = validate_novelty_index(NOVELTY_INDEX_DIR, nodes_paper_path, EMBEDDING_MODEL)
+        if status.get("ok"):
+            _log_event(logger, "index_preflight_ok", {"index": "novelty", "status": status})
+        else:
+            _log_event(logger, "index_preflight_failed", {"index": "novelty", "status": status})
+            if PipelineConfig.INDEX_ALLOW_BUILD:
+                lock_path = NOVELTY_INDEX_DIR / ".build.lock"
+                _log_event(logger, "index_preflight_build_start", {
+                    "index": "novelty",
+                    "index_dir": str(NOVELTY_INDEX_DIR),
+                })
+                with acquire_lock(lock_path):
+                    build_novelty_index(
+                        index_dir=NOVELTY_INDEX_DIR,
+                        batch_size=NOVELTY_INDEX_BUILD_BATCH_SIZE,
+                        resume=NOVELTY_INDEX_BUILD_RESUME,
+                        max_retries=NOVELTY_INDEX_BUILD_MAX_RETRIES,
+                        sleep_sec=NOVELTY_INDEX_BUILD_SLEEP_SEC,
+                        force_rebuild=False,
+                        logger=logger,
+                    )
+                status = validate_novelty_index(NOVELTY_INDEX_DIR, nodes_paper_path, EMBEDDING_MODEL)
+                _log_event(logger, "index_preflight_build_done", {"index": "novelty", "status": status})
+                if not status.get("ok") and NOVELTY_REQUIRE_EMBEDDING:
+                    raise RuntimeError("Novelty index build failed or incomplete. Please run build_novelty_index.py manually.")
+            else:
+                if NOVELTY_REQUIRE_EMBEDDING:
+                    raise RuntimeError(
+                        "Novelty index missing or mismatched. Please run: "
+                        "python Paper-KG-Pipeline/scripts/tools/build_novelty_index.py --resume"
+                    )
+                print("⚠️ Novelty index missing/mismatch. Continuing because require_embedding=false.")
+
+    # Recall offline index (only if enabled)
+    if PipelineConfig.RECALL_USE_OFFLINE_INDEX:
+        nodes_paper_path = OUTPUT_DIR / "nodes_paper.json"
+        nodes_idea_path = OUTPUT_DIR / "nodes_idea.json"
+        status = validate_recall_index(PipelineConfig.RECALL_INDEX_DIR, nodes_paper_path, nodes_idea_path, EMBEDDING_MODEL)
+        if status.get("ok"):
+            _log_event(logger, "index_preflight_ok", {"index": "recall", "status": status})
+        else:
+            _log_event(logger, "index_preflight_failed", {"index": "recall", "status": status})
+            if PipelineConfig.INDEX_ALLOW_BUILD:
+                lock_path = Path(PipelineConfig.RECALL_INDEX_DIR) / ".build.lock"
+                _log_event(logger, "index_preflight_build_start", {
+                    "index": "recall",
+                    "index_dir": str(PipelineConfig.RECALL_INDEX_DIR),
+                })
+                with acquire_lock(lock_path):
+                    build_recall_index(
+                        index_dir=PipelineConfig.RECALL_INDEX_DIR,
+                        batch_size=PipelineConfig.RECALL_EMBED_BATCH_SIZE,
+                        resume=True,
+                        max_retries=PipelineConfig.RECALL_EMBED_MAX_RETRIES,
+                        sleep_sec=PipelineConfig.RECALL_EMBED_SLEEP_SEC,
+                        force_rebuild=False,
+                        logger=logger,
+                    )
+                status = validate_recall_index(PipelineConfig.RECALL_INDEX_DIR, nodes_paper_path, nodes_idea_path, EMBEDDING_MODEL)
+                _log_event(logger, "index_preflight_build_done", {"index": "recall", "status": status})
+            else:
+                print("⚠️ Recall offline index missing/mismatch. Continuing with online batch fallback.")
 
 # ===================== 主函数 =====================
 def main():
@@ -105,6 +217,8 @@ def main():
             logger.log_event("run_start", {"user_idea": user_idea})
             if _DOTENV_STATUS:
                 logger.log_event("dotenv_loaded", _DOTENV_STATUS)
+        # Preflight & auto-prepare required indexes (quality-first)
+        ensure_required_indexes(logger)
         # 加载节点数据
         with open(OUTPUT_DIR / "nodes_pattern.json", 'r', encoding='utf-8') as f:
             patterns = json.load(f)

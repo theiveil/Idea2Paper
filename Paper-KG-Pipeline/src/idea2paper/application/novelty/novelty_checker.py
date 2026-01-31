@@ -8,6 +8,8 @@ from idea2paper.config import (
     NOVELTY_HIGH_TH,
     NOVELTY_MEDIUM_TH,
     NOVELTY_INDEX_DIR,
+    NOVELTY_AUTO_BUILD_INDEX,
+    NOVELTY_REQUIRE_EMBEDDING,
     NOVELTY_REPORT_IN_OUTPUT,
     OUTPUT_DIR,
     RESULTS_ROOT,
@@ -38,7 +40,20 @@ class NoveltyChecker:
 
     def check(self, story: Dict, run_id: str, user_idea: str) -> Dict:
         story_text = build_story_text(story)
-        index_status = self.index.ensure_index()
+        index_status = self.index.ensure_index(allow_build=NOVELTY_AUTO_BUILD_INDEX)
+
+        if not index_status.get("embedding_available", True) and NOVELTY_REQUIRE_EMBEDDING:
+            if self.logger:
+                self.logger.log_event("novelty_index_missing", {
+                    "index_dir": str(NOVELTY_INDEX_DIR),
+                    "nodes_paper_hash": index_status.get("nodes_paper_hash"),
+                    "embedding_model": index_status.get("embedding_model"),
+                    "notes": index_status.get("notes", []),
+                })
+            raise RuntimeError(
+                "Novelty index missing or mismatched. "
+                "Please build it first: python Paper-KG-Pipeline/scripts/tools/build_novelty_index.py"
+            )
         candidates, info = self.index.query(story_text, NOVELTY_TOPK)
 
         # fill keyword_overlap if cosine used

@@ -168,6 +168,36 @@ NOVELTY_INDEX_DIR = _get(
     cast=Path,
     cfg_path=["novelty", "index_dir"],
 )
+NOVELTY_AUTO_BUILD_INDEX = _get(
+    "I2P_NOVELTY_AUTO_BUILD_INDEX",
+    False,
+    cast=bool,
+    cfg_path=["novelty", "auto_build_index"],
+)
+NOVELTY_INDEX_BUILD_BATCH_SIZE = _get(
+    "I2P_NOVELTY_INDEX_BUILD_BATCH_SIZE",
+    32,
+    cast=int,
+    cfg_path=["novelty", "index_batch_size"],
+)
+NOVELTY_INDEX_BUILD_RESUME = _get(
+    "I2P_NOVELTY_INDEX_BUILD_RESUME",
+    True,
+    cast=bool,
+    cfg_path=["novelty", "index_resume"],
+)
+NOVELTY_INDEX_BUILD_MAX_RETRIES = _get(
+    "I2P_NOVELTY_INDEX_BUILD_MAX_RETRIES",
+    3,
+    cast=int,
+    cfg_path=["novelty", "index_max_retries"],
+)
+NOVELTY_INDEX_BUILD_SLEEP_SEC = _get(
+    "I2P_NOVELTY_INDEX_BUILD_SLEEP_SEC",
+    1.0,
+    cast=float,
+    cfg_path=["novelty", "index_sleep_sec"],
+)
 NOVELTY_ACTION = _get(
     "I2P_NOVELTY_ACTION",
     "pivot",
@@ -258,6 +288,50 @@ class PipelineConfig:
         True,
         cast=bool,
         cfg_path=["recall", "audit_in_events"],
+    )
+    RECALL_EMBED_BATCH_SIZE = _get(
+        "I2P_RECALL_EMBED_BATCH_SIZE",
+        32,
+        cast=int,
+        cfg_path=["recall", "embed_batch_size"],
+    )
+    RECALL_EMBED_MAX_RETRIES = _get(
+        "I2P_RECALL_EMBED_MAX_RETRIES",
+        3,
+        cast=int,
+        cfg_path=["recall", "embed_max_retries"],
+    )
+    RECALL_EMBED_SLEEP_SEC = _get(
+        "I2P_RECALL_EMBED_SLEEP_SEC",
+        0.5,
+        cast=float,
+        cfg_path=["recall", "embed_sleep_sec"],
+    )
+    RECALL_USE_OFFLINE_INDEX = _get(
+        "I2P_RECALL_USE_OFFLINE_INDEX",
+        False,
+        cast=bool,
+        cfg_path=["recall", "use_offline_index"],
+    )
+    RECALL_INDEX_DIR = _get(
+        "I2P_RECALL_INDEX_DIR",
+        str(OUTPUT_DIR / "recall_index"),
+        cast=Path,
+        cfg_path=["recall", "index_dir"],
+    )
+
+    # Index preflight (auto-prepare before run)
+    INDEX_AUTO_PREPARE = _get(
+        "I2P_INDEX_AUTO_PREPARE",
+        True,
+        cast=bool,
+        cfg_path=["index", "auto_prepare"],
+    )
+    INDEX_ALLOW_BUILD = _get(
+        "I2P_INDEX_ALLOW_BUILD",
+        True,
+        cast=bool,
+        cfg_path=["index", "allow_build"],
     )
 
     # Phase 4 查重开关

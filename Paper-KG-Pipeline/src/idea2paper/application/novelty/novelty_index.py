@@ -103,18 +103,21 @@ class NoveltyIndex:
         self._embeddings = None
         self._paper_meta = None
 
-    def ensure_index(self, force_rebuild: bool = False) -> Dict:
+    def ensure_index(self, force_rebuild: bool = False, allow_build: bool = False) -> Dict:
         status = {
             "rebuilt": False,
             "paper_count": len(self.papers),
             "skipped": 0,
             "embedding_available": True,
-            "notes": []
+            "notes": [],
+            "embedding_model": EMBEDDING_MODEL,
+            "nodes_paper_hash": None,
         }
         if not self.index_dir.exists():
             self.index_dir.mkdir(parents=True, exist_ok=True)
 
         current_hash = _file_hash(self.nodes_paper_path) if self.nodes_paper_path.exists() else None
+        status["nodes_paper_hash"] = current_hash
 
         if not force_rebuild and self.manifest_path.exists() and self.emb_path.exists() and self.meta_path.exists():
             try:
@@ -130,6 +133,11 @@ class NoveltyIndex:
                     return status
             except Exception as e:
                 status["notes"].append(f"index_load_failed:{e}")
+
+        if not allow_build:
+            status["embedding_available"] = False
+            status["notes"].append("index_missing_or_mismatch")
+            return status
 
         # rebuild
         status["rebuilt"] = True

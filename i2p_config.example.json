@@ -47,23 +47,38 @@
     "enable": true,
     "collision_threshold": 0.88
   },
+  "index": {
+    "__comment__": "Auto-prepare required indexes before running the pipeline. Quality-first: no silent downgrade; missing index will be built (resume) or fail if disabled.",
+    "auto_prepare": true,
+    "allow_build": true
+  },
   "recall": {
     "__comment__": "Persist recall candidates (Top ideas/domains/papers + final Top patterns) into pipeline_result.json and optionally events.jsonl for audit/debug.",
     "audit_enable": true,
     "audit_topn": 50,
     "audit_snippet_chars": 240,
-    "audit_in_events": true
+    "audit_in_events": true,
+    "embed_batch_size": 32,
+    "embed_max_retries": 3,
+    "embed_sleep_sec": 0.5,
+    "use_offline_index": true,
+    "index_dir": "Paper-KG-Pipeline/output/recall_index"
   },
   "novelty": {
-    "__comment__": "Local novelty check against nodes_paper.json (ICLR 2025) + pivot on high similarity.",
+    "__comment__": "Local novelty check against nodes_paper.json (ICLR 2025) + pivot on high similarity. Default: do NOT auto-build index during run; build offline first.",
     "enable": true,
     "top_k": 100,
     "high_th": 0.88,
     "medium_th": 0.82,
     "index_dir": "Paper-KG-Pipeline/output/novelty_index",
+    "auto_build_index": true,
+    "index_batch_size": 32,
+    "index_resume": true,
+    "index_max_retries": 3,
+    "index_sleep_sec": 1.0,
     "action": "pivot",
     "max_pivots": 2,
-    "require_embedding": false,
+    "require_embedding": true,
     "report_in_output": false
   }
 }

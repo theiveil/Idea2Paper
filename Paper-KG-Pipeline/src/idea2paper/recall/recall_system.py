@@ -16,6 +16,7 @@ import json
 import os
 import pickle
 import time
+import hashlib
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -25,6 +26,9 @@ import requests
 
 from pipeline.run_context import get_logger
 from idea2paper.config import OUTPUT_DIR, PipelineConfig
+from idea2paper.infra.embeddings import get_embeddings_batch, EMBEDDING_MODEL
+from idea2paper.recall.recall_text import build_recall_idea_text, build_recall_paper_text, truncate_for_embedding
+from idea2paper.recall.tokenize import to_token_set, jaccard_from_sets
 
 # 输入文件
 NODES_IDEA = OUTPUT_DIR / "nodes_idea.json"
@@ -89,6 +93,36 @@ class RecallSystem:
         self.domain_id_to_domain = {d['domain_id']: d for d in self.domains}
         self.paper_id_to_paper = {p['paper_id']: p for p in self.papers}
 
+        self._use_embed_batch = True
+        self._use_token_cache = True
+        self._use_offline_index = bool(PipelineConfig.RECALL_USE_OFFLINE_INDEX)
+        self._embed_batch_size = int(PipelineConfig.RECALL_EMBED_BATCH_SIZE)
+        self._embed_max_retries = int(PipelineConfig.RECALL_EMBED_MAX_RETRIES)
+        self._embed_sleep_sec = float(PipelineConfig.RECALL_EMBED_SLEEP_SEC)
+        self._recall_index_dir = Path(PipelineConfig.RECALL_INDEX_DIR)
+
+        self._offline_index_loaded = False
+        self._offline_index_ok = False
+        self._offline_index_reason = None
+        self._idea_emb = None
+        self._idea_meta = None
+        self._idea_id_to_idx = {}
+        self._paper_emb = None
+        self._paper_meta = None
+        self._paper_id_to_idx = {}
+
+        self._idea_token_sets = {}
+        self._paper_token_sets = {}
+        if self._use_token_cache:
+            for idea in self.ideas:
+                idea_id = idea.get("idea_id")
+                if idea_id:
+                    self._idea_token_sets[idea_id] = to_token_set(build_recall_idea_text(idea))
+            for paper in self.papers:
+                paper_id = paper.get("paper_id")
+                if paper_id:
+                    self._paper_token_sets[paper_id] = to_token_set(build_recall_paper_text(paper))
+
         print(f"  ✓ 加载 {len(self.ideas)} 个Idea")
         print(f"  ✓ 加载 {len(self.patterns)} 个Pattern")
         print(f"  ✓ 加载 {len(self.domains)} 个Domain")
@@ -100,6 +134,147 @@ class RecallSystem:
         """加载JSON文件"""
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
+
+    def _file_hash(self, path: Path) -> str:
+        h = hashlib.sha256()
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def _load_index_kind(self, kind: str, emb_path: Path, meta_path: Path, manifest_path: Path, expected_hash: str):
+        if not emb_path.exists() or not meta_path.exists() or not manifest_path.exists():
+            return None
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest.get("embedding_model") != EMBEDDING_MODEL:
+                return None
+            if manifest.get(f"nodes_{kind}_hash") != expected_hash:
+                return None
+            emb = np.load(emb_path)
+            meta = [json.loads(l) for l in meta_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+            id_key = f"{kind}_id"
+            id_to_idx = {m.get(id_key): i for i, m in enumerate(meta) if m.get(id_key)}
+            return {"emb": emb, "meta": meta, "id_to_idx": id_to_idx, "manifest": manifest}
+        except Exception:
+            return None
+
+    def _load_offline_index(self) -> bool:
+        if not self._use_offline_index:
+            return False
+        if self._offline_index_loaded:
+            return self._offline_index_ok
+
+        self._offline_index_loaded = True
+        self._offline_index_ok = False
+
+        idea_manifest = self._recall_index_dir / "idea_manifest.json"
+        idea_emb = self._recall_index_dir / "idea_emb.npy"
+        idea_meta = self._recall_index_dir / "idea_meta.jsonl"
+
+        paper_manifest = self._recall_index_dir / "paper_manifest.json"
+        paper_emb = self._recall_index_dir / "paper_emb.npy"
+        paper_meta = self._recall_index_dir / "paper_meta.jsonl"
+
+        idea_hash = self._file_hash(NODES_IDEA) if NODES_IDEA.exists() else None
+        paper_hash = self._file_hash(NODES_PAPER) if NODES_PAPER.exists() else None
+
+        idea_idx = self._load_index_kind("idea", idea_emb, idea_meta, idea_manifest, idea_hash)
+        paper_idx = self._load_index_kind("paper", paper_emb, paper_meta, paper_manifest, paper_hash)
+
+        if not idea_idx or not paper_idx:
+            self._offline_index_reason = "missing_or_mismatch"
+            if self.logger:
+                self.logger.log_event("recall_offline_index_fallback", {
+                    "reason": self._offline_index_reason,
+                    "index_dir": str(self._recall_index_dir),
+                })
+            return False
+
+        self._idea_emb = idea_idx["emb"]
+        self._idea_meta = idea_idx["meta"]
+        self._idea_id_to_idx = idea_idx["id_to_idx"]
+        self._paper_emb = paper_idx["emb"]
+        self._paper_meta = paper_idx["meta"]
+        self._paper_id_to_idx = paper_idx["id_to_idx"]
+        self._offline_index_ok = True
+        if self.logger:
+            self.logger.log_event("recall_offline_index_used", {
+                "index_dir": str(self._recall_index_dir),
+                "idea_manifest": idea_idx["manifest"],
+                "paper_manifest": paper_idx["manifest"],
+            })
+        return True
+
+    def _get_offline_embeddings(self, kind: str, ids: List[str]):
+        if not self._load_offline_index():
+            return None
+        if kind == "idea":
+            id_to_idx = self._idea_id_to_idx
+            emb = self._idea_emb
+        else:
+            id_to_idx = self._paper_id_to_idx
+            emb = self._paper_emb
+        idxs = []
+        for _id in ids:
+            idx = id_to_idx.get(_id)
+            if idx is None:
+                return None
+            idxs.append(idx)
+        return emb[np.array(idxs, dtype=int)]
+
+    def _cosine_scores(self, query_emb: np.ndarray, cand_embs: np.ndarray) -> List[float]:
+        # Use float64 to minimize numeric drift vs. per-item cosine computation.
+        q = np.array(query_emb, dtype=float)
+        c = np.array(cand_embs, dtype=float)
+        q_norm = np.linalg.norm(q)
+        c_norms = np.linalg.norm(c, axis=1)
+        c_norms[c_norms == 0] = 1.0
+        if q_norm == 0:
+            return [0.0 for _ in range(c.shape[0])]
+        scores = (c @ q) / (c_norms * q_norm)
+        return [float(s) for s in scores]
+
+    def _batch_embeddings(self, texts: List[str]):
+        if not texts:
+            return []
+        payload = [truncate_for_embedding(t) for t in texts]
+        for attempt in range(self._embed_max_retries + 1):
+            embs = get_embeddings_batch(payload, logger=self.logger, timeout=10)
+            if embs is not None:
+                return embs
+            time.sleep(self._embed_sleep_sec * (attempt + 1))
+        return None
+
+    def _compute_embedding_similarities(self, user_idea: str, candidate_ids: List[str], kind: str) -> List[Tuple[str, float]]:
+        if kind == "idea":
+            texts = [build_recall_idea_text(self.idea_id_to_idea[i]) for i in candidate_ids]
+        else:
+            texts = [build_recall_paper_text(self.paper_id_to_paper[i]) for i in candidate_ids]
+
+        if not self._use_embed_batch:
+            return [(cid, self._compute_embedding_similarity(user_idea, text)) for cid, text in zip(candidate_ids, texts)]
+
+        query_emb = self._get_embedding(truncate_for_embedding(user_idea))
+        if query_emb is None:
+            return [(cid, self._compute_jaccard_similarity(user_idea, text)) for cid, text in zip(candidate_ids, texts)]
+
+        cand_embs = None
+        if self._use_offline_index:
+            cand_embs = self._get_offline_embeddings(kind, candidate_ids)
+            if cand_embs is None and self.logger:
+                self.logger.log_event("recall_offline_index_fallback", {
+                    "reason": self._offline_index_reason or "missing_candidate",
+                    "index_dir": str(self._recall_index_dir),
+                })
+
+        if cand_embs is None:
+            cand_embs = self._batch_embeddings(texts)
+            if cand_embs is None:
+                return [(cid, self._compute_embedding_similarity(user_idea, text)) for cid, text in zip(candidate_ids, texts)]
+
+        scores = self._cosine_scores(query_emb, cand_embs)
+        return [(cid, sim) for cid, sim in zip(candidate_ids, scores)]
 
     def _compute_text_similarity(self, text1: str, text2: str) -> float:
         """计算两个文本的相似度
@@ -118,16 +293,9 @@ class RecallSystem:
 
     def _compute_jaccard_similarity(self, text1: str, text2: str) -> float:
         """词袋Jaccard相似度（快速但不准确）"""
-        tokens1 = set(text1.lower().split())
-        tokens2 = set(text2.lower().split())
-
-        if not tokens1 or not tokens2:
-            return 0.0
-
-        intersection = tokens1 & tokens2
-        union = tokens1 | tokens2
-
-        return len(intersection) / len(union)
+        tokens1 = to_token_set(text1)
+        tokens2 = to_token_set(text2)
+        return jaccard_from_sets(tokens1, tokens2)
 
     def _compute_embedding_similarity(self, text1: str, text2: str) -> float:
         """基于embedding的余弦相似度（更准确）"""
@@ -163,8 +331,8 @@ class RecallSystem:
         }
 
         payload = {
-            "model": "Qwen/Qwen3-Embedding-8B",
-            "input": text[:2000]  # 限制长度避免超限
+            "model": EMBEDDING_MODEL,
+            "input": truncate_for_embedding(text)
         }
 
         for attempt in range(max_retries):
@@ -179,7 +347,7 @@ class RecallSystem:
                             "provider": "siliconflow",
                             "url": url,
                             "model": payload["model"],
-                            "input_preview": text[:2000],
+                            "input_preview": truncate_for_embedding(text),
                             "timeout": 10
                         },
                         response={
@@ -199,11 +367,11 @@ class RecallSystem:
                         self.logger.log_embedding_call(
                             request={
                                 "provider": "siliconflow",
-                                "url": url,
-                                "model": payload["model"],
-                                "input_preview": text[:2000],
-                                "timeout": 10
-                            },
+                            "url": url,
+                            "model": payload["model"],
+                            "input_preview": truncate_for_embedding(text),
+                            "timeout": 10
+                        },
                             response={
                                 "ok": False,
                                 "latency_ms": 0,
@@ -278,25 +446,33 @@ class RecallSystem:
         if RecallConfig.TWO_STAGE_RECALL and RecallConfig.USE_EMBEDDING:
             print(f"  [粗排] 使用Jaccard快速筛选Top-{RecallConfig.COARSE_RECALL_SIZE}...")
             coarse_similarities = []
+            user_tokens = to_token_set(user_idea)
             for idea in self.ideas:
-                sim = self._compute_jaccard_similarity(user_idea, idea['description'])
+                idea_id = idea.get("idea_id")
+                if self._use_token_cache and idea_id in self._idea_token_sets:
+                    sim = jaccard_from_sets(user_tokens, self._idea_token_sets[idea_id])
+                else:
+                    sim = self._compute_jaccard_similarity(user_idea, idea.get('description', ''))
                 if sim > 0:
                     coarse_similarities.append((idea['idea_id'], sim))
 
             coarse_similarities.sort(key=lambda x: x[1], reverse=True)
             candidates = coarse_similarities[:RecallConfig.COARSE_RECALL_SIZE]
+            self._last_path3_candidates = candidates
+            self._last_path1_candidates = candidates
 
             print(f"  [精排] 使用Embedding重排Top-{RecallConfig.FINE_RECALL_SIZE}...")
             # Step 2: 精排 - 对候选使用Embedding重新计算
             fine_similarities = []
-            for idea_id, _ in candidates:
-                idea = self.idea_id_to_idea[idea_id]
-                sim = self._compute_embedding_similarity(user_idea, idea['description'])
+            candidate_ids = [idea_id for idea_id, _ in candidates]
+            sims = self._compute_embedding_similarities(user_idea, candidate_ids, kind="idea")
+            for idea_id, sim in sims:
                 if sim > 0:
                     fine_similarities.append((idea_id, sim))
 
             fine_similarities.sort(key=lambda x: x[1], reverse=True)
             top_ideas = fine_similarities[:RecallConfig.PATH1_TOP_K_IDEAS]
+            self._last_path1_top_ideas = top_ideas
 
             print(f"  ✓ 粗排{len(coarse_similarities)}个 → 精排{len(candidates)}个 → 最终{len(top_ideas)}个")
         else:
@@ -309,6 +485,8 @@ class RecallSystem:
 
             similarities.sort(key=lambda x: x[1], reverse=True)
             top_ideas = similarities[:RecallConfig.PATH1_TOP_K_IDEAS]
+            self._last_path1_candidates = similarities[:RecallConfig.COARSE_RECALL_SIZE]
+            self._last_path1_top_ideas = top_ideas
             print(f"  找到 {len(similarities)} 个相似Idea，选择Top-{RecallConfig.PATH1_TOP_K_IDEAS}")
 
         # Step 3: 直接从Idea节点获取pattern_ids并计算得分
@@ -459,13 +637,18 @@ class RecallSystem:
         if RecallConfig.TWO_STAGE_RECALL and RecallConfig.USE_EMBEDDING:
             print(f"  [粗排] 使用Jaccard快速筛选Top-{RecallConfig.COARSE_RECALL_SIZE}...")
             coarse_similarities = []
+            user_tokens = to_token_set(user_idea)
 
             for paper in self.papers:
                 paper_title = paper.get('title', '')
                 if not paper_title:
                     continue
 
-                sim = self._compute_jaccard_similarity(user_idea, paper_title)
+                paper_id = paper.get("paper_id")
+                if self._use_token_cache and paper_id in self._paper_token_sets:
+                    sim = jaccard_from_sets(user_tokens, self._paper_token_sets[paper_id])
+                else:
+                    sim = self._compute_jaccard_similarity(user_idea, paper_title)
                 if sim > 0.05:  # 降低阈值以保留更多候选
                     coarse_similarities.append((paper['paper_id'], sim))
 
@@ -475,12 +658,11 @@ class RecallSystem:
             print(f"  [精排] 使用Embedding重排Top-{RecallConfig.PATH3_TOP_K_PAPERS}...")
             # Step 2: 精排 - 对候选使用Embedding重新计算
             fine_similarities = []
-            for paper_id, _ in candidates:
-                paper = self.paper_id_to_paper[paper_id]
-                paper_title = paper.get('title', '')
-
-                sim = self._compute_embedding_similarity(user_idea, paper_title)
+            candidate_ids = [paper_id for paper_id, _ in candidates]
+            sims = self._compute_embedding_similarities(user_idea, candidate_ids, kind="paper")
+            for paper_id, sim in sims:
                 if sim > 0.1:  # 过滤低相似度
+                    paper = self.paper_id_to_paper[paper_id]
                     quality = self._get_paper_quality(paper)
                     combined_weight = sim * quality
                     fine_similarities.append((paper_id, sim, quality, combined_weight))
@@ -506,6 +688,7 @@ class RecallSystem:
 
             similarities.sort(key=lambda x: x[3], reverse=True)
             top_papers = similarities[:RecallConfig.PATH3_TOP_K_PAPERS]
+            self._last_path3_candidates = similarities[:RecallConfig.COARSE_RECALL_SIZE]
 
             print(f"  找到 {len(similarities)} 个相似Paper，选择Top-{RecallConfig.PATH3_TOP_K_PAPERS}")
 
