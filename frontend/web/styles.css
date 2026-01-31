@@ -189,6 +189,21 @@ input:focus {
   color: #6b7280;
 }
 
+.callout {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #7c2d12;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.callout strong {
+  font-weight: 700;
+}
+
 .status {
   display: flex;
   flex-direction: column;

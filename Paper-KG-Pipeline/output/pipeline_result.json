@@ -1,72 +1,72 @@
 {
   "user_idea": "Propose the autoregressive image diffusion (AID) model for image sequence generation and apply it to sample the posterior for accelerated MRI reconstruction",
   "success": true,
-  "iterations": 1,
+  "iterations": 2,
   "selected_patterns": {
     "stability": [
       "pattern_100",
       "pattern_115",
       "pattern_57",
-      "pattern_114",
-      "pattern_102"
+      "pattern_102",
+      "pattern_7"
     ],
     "novelty": [
-      "pattern_7",
       "pattern_49",
       "pattern_114",
-      "pattern_94",
-      "pattern_68"
+      "pattern_68",
+      "pattern_7",
+      "pattern_94"
     ],
     "domain_distance": [
       "pattern_49",
       "pattern_100",
-      "pattern_114",
       "pattern_99",
-      "pattern_94"
+      "pattern_94",
+      "pattern_114"
     ]
   },
   "final_story": {
-    "title": "Autoregressive Image Diffusion for Sequence-Aware Posterior Sampling in Accelerated MRI Reconstruction",
-    "abstract": "Accelerated MRI reconstruction requires recovering high-fidelity images from undersampled data, a task complicated by the need to preserve temporal coherence in dynamic sequences. We propose the Autoregressive Image Diffusion (AID) model, a novel framework designed for image sequence generation that effectively captures temporal dependencies. To address the prohibitive computational cost of diffusion sampling in clinical settings, we integrate advanced numerical solvers, specifically exponential integrators and quasi-Taylor schemes, into the AID framework. This approach transforms the diffusion sampling process from a slow stochastic trajectory into a fast, deterministic path. By applying AID to sample the posterior distribution, we achieve rapid, high-quality reconstruction of MRI sequences, outperforming traditional methods in both efficiency and temporal consistency.",
-    "problem_framing": "We reframe accelerated MRI reconstruction from a static, pixel-wise optimization task to a dynamic sequence generation problem requiring coherent temporal modeling. Traditional approaches treat MRI frames independently, failing to leverage the rich temporal information inherent in dynamic scans. Furthermore, the application of diffusion models to this inverse problem is often hindered by the slow, iterative nature of the sampling process. By shifting the focus to autoregressive generation within the diffusion framework, we address the dual challenge of maintaining spatiotemporal consistency while ensuring the computational feasibility of posterior sampling.",
-    "gap_pattern": "Existing methods for MRI reconstruction utilizing diffusion models are primarily designed for static images, lacking the mechanism to handle sequential data autoregressively. Moreover, standard diffusion samplers rely on hundreds to thousands of neural function evaluations, making posterior sampling for MRI prohibitively expensive. Current efficient sampling techniques have not been adapted to the autoregressive context, leaving a critical gap where the temporal dynamics of sequences cannot be modeled efficiently without sacrificing reconstruction speed or quality.",
-    "solution": "Our solution introduces the Autoregressive Image Diffusion (AID) model, which specifically targets image sequence generation by conditioning the denoising process on previous latent states. To realize the goal of practical MRI reconstruction, we employ the Diffusion Exponential Integrator Sampler (DEIS) and quasi-Taylor schemes as the numerical engine. These techniques leverage the semilinear structure of diffusion processes to minimize discretization error, allowing us to drastically reduce the number of sampling steps. This integration transforms AID from a conceptual generative model into a practical tool for accelerated MRI, enabling fast, deterministic posterior sampling that preserves the sequential fidelity of the anatomical data.",
-    "method_skeleton": "Construct the AID architecture by incorporating an autoregressive conditioning module that integrates the latent state of the previous time step into the score network for current frame prediction; Implement the Diffusion Exponential Integrator Sampler (DEIS) to discretize the probability flow ODE, utilizing the analytical solution of the linear part to achieve high-order accuracy with fewer steps; Formulate the MRI reconstruction as a posterior sampling problem by conditioning the AID model on undersampled k-space data using a gradient-based guidance step; Employ a quasi-Taylor sampler with ideal derivative substitution to further accelerate the generation of high-frequency details in the MRI sequences.",
+    "title": "Autoregressive Image Diffusion via Spatio-Temporal ODE Alignment for Zero-Shot MRI Reconstruction",
+    "abstract": "We propose the Autoregressive Image Diffusion (AID) model to address the critical challenge of sampling high-fidelity posteriors in accelerated MRI reconstruction. Unlike existing methods that treat slices independently or rely purely on discrete sequential conditioning, we reframe this task as a Manifold Alignment challenge. Our approach aligns the generic visual manifold of pre-trained diffusion priors with the physical measurement manifold of k-space data through a unified dynamic system. We introduce a Spatio-Temporal ODE Alignment framework that treats anatomical sequence continuity as a geometric constraint, allowing the 'noise time' of diffusion and the 'spatial sequence' of MRI stacks to co-evolve. By implementing a Diffusion Exponential Integrator Sampler (DEIS) to solve this coupled system, we transform the reconstruction process into a high-precision numerical integration. This enables zero-shot volumetric reconstruction that maintains structural coherence and rigorous physical consistency without requiring sequence-specific training.",
+    "problem_framing": "We reframe accelerated MRI reconstruction from a sequential slice generation task or a single inverse problem to a **manifold alignment challenge**. The core problem is bridging the gap between the semantic manifold of generic image priors and the constraint manifold of k-space measurements. This requires synchronizing the 'time' dimension of diffusion with the 'space' dimension of anatomical sequences under a unified dynamic system. We posit that the latent space of generic diffusion priors contains sufficient dynamic information to model anatomical continuity, allowing us to treat the pseudo-inverse sequence and the generic denoising trajectory as topologically isomorphic structures.",
+    "gap_pattern": "Existing diffusion-based MRI methods fail to achieve this alignment because they treat inter-slice dependencies as discrete conditioning steps rather than continuous geometric constraints. Standard autoregressive models generate slices sequentially, ignoring the topological isomorphism between the pseudo-inverse trajectory and the generic denoising path. Furthermore, current approaches lack the rigorous numerical integration required to solve the coupled system of denoising and physical consistency. They struggle to balance the high fidelity needed for medical imaging with the speed required for clinical workflows, often sacrificing temporal coherence for fast individual sampling due to the prohibitive computational cost of sequential generation.",
+    "solution": "We introduce **Manifold-Aligned Autoregressive Image Diffusion**, a framework that transforms MRI reconstruction into a Spatio-Temporal ODE Alignment process. By treating anatomical sequence continuity as a geometric constraint on the diffusion trajectory, we unify physical consistency and anatomical consistency into a single co-evolutionary manifold alignment process. We employ a modified score network parameterization that supports deterministic sampling across the sequence. Crucially, we utilize a Diffusion Exponential Integrator Sampler (DEIS) to solve the inter-slice coherence ODE concurrently with the diffusion denoising ODE. This technical choice transforms the slow, stochastic autoregressive generation into a fast, high-precision numerical integration, allowing us to sample the full posterior distribution of MRI sequences with significantly fewer function evaluations while maintaining structural coherence.",
+    "method_skeleton": "Step 1: Formulate the reconstruction as a co-evolutionary system where the diffusion score function and the k-space measurement manifold are aligned via a unified Spatio-Temporal ODE, treating the slice index as a continuous variable in the generative process; Step 2: Implement a Diffusion Exponential Integrator Sampler (DEIS) to discretize this coupled ODE, leveraging the semilinear structure of diffusion processes to minimize discretization error in both denoising time and anatomical space; Step 3: Apply a quasi-Taylor scheme with ideal derivative substitution to approximate higher-order gradients of the manifold alignment, enabling efficient zero-shot posterior sampling without task-specific training.",
     "innovation_claims": [
-      "Transform MRI reconstruction from static frame-by-frame processing to a coherent sequence generation paradigm by introducing Autoregressive Image Diffusion, which inherently models temporal dependencies.",
-      "Reframe the computational bottleneck of diffusion sampling by integrating exponential integrators and quasi-Taylor schemes, reducing neural function evaluations by orders of magnitude.",
-      "Enable accurate posterior sampling for accelerated MRI by unifying autoregressive sequence modeling with deterministic, high-efficiency numerical solvers, ensuring both speed and diagnostic fidelity."
+      "We transform autoregressive MRI generation from discrete slice-by-slice conditioning to **continuous manifold alignment**, bridging the generic visual prior and physical measurement manifold via a unified Spatio-Temporal ODE.",
+      "We transform the posterior sampling process into a **co-evolutionary state** by solving the inter-slice coherence ODE concurrently with the diffusion denoising ODE using a Diffusion Exponential Integrator Sampler (DEIS), eliminating the need for sequential generation loops.",
+      "We transform the requirement for task-specific training by positing **topological isomorphism** between generic priors and MRI trajectories, enabling zero-shot volumetric reconstruction through precise high-order numerical integration of the aligned manifold."
     ],
-    "experiments_plan": "We evaluate AID on fast MRI knee and cardiac datasets, comparing reconstruction quality (SSIM, PSNR) and sampling speed against state-of-the-art diffusion and compressed sensing methods. Ablation studies will assess the impact of autoregressive conditioning and the efficiency gains from DEIS and quasi-Taylor samplers."
+    "experiments_plan": "We evaluate our method on the FastMRI and IXI knee/brain datasets to ensure generalizability beyond a single domain. Comparisons are made against state-of-the-art methods including standard autoregressive models (e.g., Video Diffusion Models), physics-informed diffusion models (e.g., CSDI), and unrolled optimization networks (e.g., VarNet). Metrics include PSNR, SSIM, and HFEN for image quality, along with temporal coherence metrics for sequence consistency. We conduct ablation studies on the ODE alignment term and the DEIS solver steps. Additionally, we provide a theoretical convergence analysis for the coupled Spatio-Temporal ODE system to address theoretical concerns."
   },
   "review_history": [
     {
-      "pass": true,
-      "avg_score": 6.896666666666563,
+      "pass": false,
+      "avg_score": 6.203333333333244,
       "reviews": [
         {
           "reviewer": "Reviewer A",
           "role": "Methodology",
-          "score": 6.949999999999895,
-          "feedback": "Main gaps: Limited theoretical analysis of convergence properties, Lack of comparison with other autoregressive diffusion approaches, Missing discussion of computational complexity scaling with sequence length. Anchored against 9 papers."
+          "score": 6.6599999999999016,
+          "feedback": "Main gaps: Limited theoretical analysis without convergence guarantees, Restricted evaluation on single dataset with standard metrics, Lack of comparison with state-of-the-art MRI reconstruction methods. Anchored against 9 papers."
         },
         {
           "reviewer": "Reviewer B",
           "role": "Novelty",
-          "score": 7.709999999999879,
-          "feedback": "Main gaps: Limited theoretical analysis of the proposed approach, Potential lack of comparison with other autoregressive models for MRI reconstruction, Possible concerns about generalizability to other medical imaging modalities. Anchored against 9 papers."
+          "score": 5.569999999999925,
+          "feedback": "Main gaps: Limited theoretical analysis of the autoregressive approach for MRI reconstruction, Lack of comparison with other autoregressive models for medical imaging, Potential scalability issues for long sequences of MRI slices. Anchored against 9 papers."
         },
         {
           "reviewer": "Reviewer C",
           "role": "Storyteller",
-          "score": 6.029999999999915,
-          "feedback": "Main gaps: Limited theoretical analysis, Evaluation scope limited to specific MRI datasets, Lack of detailed computational complexity analysis. Anchored against 9 papers."
+          "score": 6.3799999999999075,
+          "feedback": "Main gaps: Limited theoretical foundation, Insufficient experimental validation details, Unclear generalizability beyond MRI. Anchored against 9 papers."
         }
       ],
-      "main_issue": "domain_distance",
+      "main_issue": "novelty",
       "suggestions": [
-        "从domain_distance维度选择跨域Pattern",
-        "引入不同视角优化叙事"
+        "从novelty维度选择创新Pattern",
+        "注入长尾Pattern提升新颖性"
       ],
       "audit": {
         "pattern_id": "pattern_100",
@@ -135,22 +135,22 @@
             "weight": 1.0241632363449014
           },
           {
-            "paper_id": "SdXv2C2-tnj",
-            "title": "Density Sketches for Sampling and Estimation",
+            "paper_id": "ObWiIiKihBf",
+            "title": "Boomerang: Local sampling on image manifolds using diffusion models",
             "pattern_id": "pattern_100",
-            "score10": 5.657500000000001,
-            "review_count": 4,
-            "dispersion10": 2.7900000000000005,
-            "weight": 0.4246538027530607
+            "score10": 5.599000000000001,
+            "review_count": 5,
+            "dispersion10": 3.6900000000000004,
+            "weight": 0.3820382663599264
           },
           {
-            "paper_id": "F0KTk2plQzO",
-            "title": "Accelerating Guided Diffusion Sampling with Splitting Numerical Methods",
+            "paper_id": "s7gnrEtWSm",
+            "title": "Iterative $\\alpha$-(de)Blending: Learning a Deterministic Mapping Between Arbitrary Densities",
             "pattern_id": "pattern_100",
-            "score10": 6.679,
+            "score10": 6.571,
             "review_count": 5,
-            "dispersion10": 0.4500000000000004,
-            "weight": 1.2356961856745203
+            "dispersion10": 3.6900000000000004,
+            "weight": 0.3820382663599264
           }
         ],
         "role_details": {
@@ -159,201 +159,205 @@
               {
                 "paper_id": "HyjIEf90Tn",
                 "judgement": "better",
-                "confidence": 0.8,
-                "rationale": "AID combines autoregressive modeling with advanced numerical solvers, offering more comprehensive methodology than binary classification approach, score10: 5.9"
+                "confidence": 0.7,
+                "rationale": "AID combines multiple advanced techniques for MRI reconstruction, score10: 5.9"
               },
               {
                 "paper_id": "spDUv05cEq",
                 "judgement": "better",
-                "confidence": 0.75,
-                "rationale": "AID's integration of multiple advanced techniques for MRI reconstruction shows more methodological depth than flow-based mutual information approximations, score10: 6.0"
+                "confidence": 0.6,
+                "rationale": "AID's specialized methodology for MRI reconstruction surpasses flow-based mutual information estimation, score10: 6.0"
               },
               {
                 "paper_id": "RZHdb7FnqlY",
                 "judgement": "better",
                 "confidence": 0.7,
-                "rationale": "AID's sophisticated combination of autoregressive modeling and numerical solvers demonstrates stronger methodological innovation than deepfake detection, score10: 6.2"
+                "rationale": "AID's generative methodology for MRI is more innovative than deepfake detection, score10: 6.2"
               },
               {
                 "paper_id": "RaR3ETzyKp",
                 "judgement": "better",
-                "confidence": 0.65,
-                "rationale": "AID addresses both temporal modeling and computational efficiency with more comprehensive methodology than rectified flow training improvements, score10: 6.5"
+                "confidence": 0.6,
+                "rationale": "AID combines multiple advanced techniques for MRI reconstruction, score10: 6.5"
               },
               {
                 "paper_id": "zWy7dqOcel",
                 "judgement": "worse",
                 "confidence": 0.6,
-                "rationale": "Mollified interaction energy descent shows stronger theoretical novelty than AID's application-focused methodology, score10: 7.1"
+                "rationale": "Mollified interaction energy descent provides more fundamental contribution than AID's specialized approach, score10: 7.1"
               },
               {
                 "paper_id": "r5njV3BsuD",
                 "judgement": "worse",
-                "confidence": 0.65,
-                "rationale": "Stochastic localization provides stronger theoretical foundations than AID's application-oriented methodology, score10: 6.5"
+                "confidence": 0.7,
+                "rationale": "Stochastic localization provides stronger theoretical foundation than AID's applied methodology, score10: 6.5"
               },
               {
                 "paper_id": "PP1rudnxiW",
                 "judgement": "better",
                 "confidence": 0.6,
-                "rationale": "AID's integration of autoregressive modeling with advanced numerical solvers offers more comprehensive methodology than transport-variational inference combination, score10: 6.4"
+                "rationale": "AID combines multiple advanced techniques for MRI reconstruction, score10: 6.4"
               },
               {
-                "paper_id": "SdXv2C2-tnj",
+                "paper_id": "ObWiIiKihBf",
                 "judgement": "better",
-                "confidence": 0.8,
-                "rationale": "AID's sophisticated methodology combining multiple advanced techniques demonstrates stronger innovation than density sketches approach, score10: 5.7"
+                "confidence": 0.7,
+                "rationale": "AID's methodology is more complex than local sampling on image manifolds, score10: 5.6"
               },
               {
-                "paper_id": "F0KTk2plQzO",
-                "judgement": "better",
-                "confidence": 0.55,
-                "rationale": "AID adds autoregressive temporal modeling to numerical acceleration, offering more comprehensive methodology than splitting numerical methods alone, score10: 6.7"
+                "paper_id": "s7gnrEtWSm",
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Deterministic mapping between densities provides more fundamental contribution than AID's specialized approach, score10: 6.6"
               }
             ],
             "main_gaps": [
-              "Limited theoretical analysis of convergence properties",
-              "Lack of comparison with other autoregressive diffusion approaches",
-              "Missing discussion of computational complexity scaling with sequence length"
+              "Limited theoretical analysis without convergence guarantees",
+              "Restricted evaluation on single dataset with standard metrics",
+              "Lack of comparison with state-of-the-art MRI reconstruction methods",
+              "Missing computational complexity analysis",
+              "Insufficient discussion of limitations and failure modes"
             ],
-            "score": 6.949999999999895,
-            "loss": 0.32896515565489276,
-            "avg_confidence": 0.6777777777777777,
+            "score": 6.6599999999999016,
+            "loss": 0.3127115897005426,
+            "avg_confidence": 0.6444444444444444,
             "monotonic_violations": 1
           },
           "Novelty": {
             "comparisons": [
               {
                 "paper_id": "HyjIEf90Tn",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's novel autoregressive diffusion for MRI exceeds binary classification approach, score10: 5.9"
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Binary classification for diffusion models is more novel than combining existing techniques for MRI. score10: 5.9"
               },
               {
                 "paper_id": "spDUv05cEq",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's integration of autoregressive conditioning with advanced solvers for MRI is more novel than flow-based MI approximation, score10: 6.0"
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Flow-based mutual information estimation is more novel than combining existing techniques for MRI. score10: 6.0"
               },
               {
                 "paper_id": "RZHdb7FnqlY",
                 "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's novel framework for MRI reconstruction with temporal coherence is more innovative than deepfake detection, score10: 6.2"
+                "confidence": 0.6,
+                "rationale": "AID's autoregressive diffusion for MRI is more novel than deepfake detection methods. score10: 6.2"
               },
               {
                 "paper_id": "RaR3ETzyKp",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's application to MRI with autoregressive conditioning is more novel than rectified flow training improvement, score10: 6.5"
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Improving rectified flow training is more novel than combining existing techniques for MRI. score10: 6.5"
               },
               {
                 "paper_id": "zWy7dqOcel",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's integration of exponential integrators for MRI reconstruction shows greater novelty than mollified energy descent, score10: 7.1"
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Mollified interaction energy descent is more novel than applying autoregressive diffusion to MRI. score10: 7.1"
               },
               {
                 "paper_id": "r5njV3BsuD",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's practical application to MRI with autoregressive conditioning demonstrates more novelty than theoretical convergence bounds, score10: 6.5"
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Theoretical convergence bounds for diffusion models are more novel than AID's application to MRI. score10: 6.5"
               },
               {
                 "paper_id": "PP1rudnxiW",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's specific application to MRI with autoregressive conditioning is more novel than transport-variational inference combination, score10: 6.4"
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Combining transport with variational inference is more novel than AID's autoregressive diffusion for MRI. score10: 6.4"
               },
               {
-                "paper_id": "SdXv2C2-tnj",
-                "judgement": "better",
-                "confidence": 0.7,
-                "rationale": "AID's autoregressive diffusion for MRI reconstruction is more innovative than density sketches for sampling, score10: 5.7"
-              },
-              {
-                "paper_id": "F0KTk2plQzO",
+                "paper_id": "ObWiIiKihBf",
                 "judgement": "better",
                 "confidence": 0.6,
-                "rationale": "AID adds autoregressive modeling for MRI to similar numerical acceleration techniques, providing additional novelty, score10: 6.7"
+                "rationale": "AID's comprehensive approach to MRI reconstruction is more novel than local sampling on image manifolds. score10: 5.6"
+              },
+              {
+                "paper_id": "s7gnrEtWSm",
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Learning deterministic mappings between arbitrary densities is more novel than AID's application to MRI. score10: 6.6"
               }
             ],
             "main_gaps": [
-              "Limited theoretical analysis of the proposed approach",
-              "Potential lack of comparison with other autoregressive models for MRI reconstruction",
-              "Possible concerns about generalizability to other medical imaging modalities"
+              "Limited theoretical analysis of the autoregressive approach for MRI reconstruction",
+              "Lack of comparison with other autoregressive models for medical imaging",
+              "Potential scalability issues for long sequences of MRI slices"
             ],
-            "score": 7.709999999999879,
-            "loss": 0.02523829387461697,
-            "avg_confidence": 0.6888888888888888,
-            "monotonic_violations": 0
+            "score": 5.569999999999925,
+            "loss": 0.1546615652971493,
+            "avg_confidence": 0.6,
+            "monotonic_violations": 1
           },
           "Storyteller": {
             "comparisons": [
               {
                 "paper_id": "HyjIEf90Tn",
-                "judgement": "tie",
-                "confidence": 0.5,
-                "rationale": "Both papers have merits in different areas, with Story focusing on application (score10: 5.9)."
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "AID's novel MRI application surpasses discrete diffusion approach. score10: 5.9"
               },
               {
                 "paper_id": "spDUv05cEq",
-                "judgement": "tie",
-                "confidence": 0.5,
-                "rationale": "Both papers have merits in different areas, with Story focusing on application (score10: 6.0)."
+                "judgement": "better",
+                "confidence": 0.65,
+                "rationale": "AID's medical imaging innovation exceeds flow-based MI approximation. score10: 6.0"
               },
               {
                 "paper_id": "RZHdb7FnqlY",
                 "judgement": "better",
                 "confidence": 0.6,
-                "rationale": "Story introduces more novel techniques for MRI reconstruction compared to this deepfake detection paper (score10: 6.2)."
+                "rationale": "AID's constructive MRI approach is more novel than deepfake detection. score10: 6.2"
               },
               {
                 "paper_id": "RaR3ETzyKp",
-                "judgement": "tie",
-                "confidence": 0.5,
-                "rationale": "Both papers have merits in different areas, with Story focusing on application (score10: 6.5)."
+                "judgement": "better",
+                "confidence": 0.55,
+                "rationale": "AID's multi-technique application slightly edges rectified flow training. score10: 6.5"
               },
               {
                 "paper_id": "zWy7dqOcel",
                 "judgement": "worse",
-                "confidence": 0.7,
-                "rationale": "Story integrates existing solvers rather than introducing a fundamentally new method like this paper (score10: 7.1)."
+                "confidence": 0.6,
+                "rationale": "Mollified Energy Descent has stronger theory than AID. score10: 7.1"
               },
               {
                 "paper_id": "r5njV3BsuD",
                 "judgement": "worse",
-                "confidence": 0.7,
-                "rationale": "Story lacks the strong theoretical contributions provided by this convergence bounds paper (score10: 6.5)."
+                "confidence": 0.65,
+                "rationale": "Stochastic localization's theoretical bounds surpass AID's application. score10: 6.5"
               },
               {
                 "paper_id": "PP1rudnxiW",
                 "judgement": "worse",
-                "confidence": 0.6,
-                "rationale": "Story's combination of techniques is less novel than this transport and variational inference paper (score10: 6.4)."
+                "confidence": 0.55,
+                "rationale": "Transport-Variational Inference has stronger theory than AID. score10: 6.4"
               },
               {
-                "paper_id": "SdXv2C2-tnj",
-                "judgement": "tie",
-                "confidence": 0.5,
-                "rationale": "Both papers have merits in different areas, with Story focusing on application (score10: 5.7)."
+                "paper_id": "ObWiIiKihBf",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "AID's MRI innovation exceeds Boomerang's local sampling. score10: 5.6"
               },
               {
-                "paper_id": "F0KTk2plQzO",
-                "judgement": "tie",
-                "confidence": 0.5,
-                "rationale": "Both papers focus on accelerating diffusion sampling but with different techniques (score10: 6.7)."
+                "paper_id": "s7gnrEtWSm",
+                "judgement": "worse",
+                "confidence": 0.55,
+                "rationale": "α-(de)Blending's deterministic mapping is more grounded than AID. score10: 6.6"
               }
             ],
             "main_gaps": [
-              "Limited theoretical analysis",
-              "Evaluation scope limited to specific MRI datasets",
-              "Lack of detailed computational complexity analysis"
+              "Limited theoretical foundation",
+              "Insufficient experimental validation details",
+              "Unclear generalizability beyond MRI",
+              "Lack of computational complexity analysis",
+              "Missing clinical validation for medical application"
             ],
-            "score": 6.029999999999915,
-            "loss": 0.16824297283927847,
-            "avg_confidence": 0.5666666666666667,
-            "monotonic_violations": 2
+            "score": 6.3799999999999075,
+            "loss": 0.29777936254785115,
+            "avg_confidence": 0.6166666666666667,
+            "monotonic_violations": 1
           }
         },
         "anchors_rounds": [
@@ -424,22 +428,22 @@
           ],
           [
             {
-              "paper_id": "SdXv2C2-tnj",
-              "title": "Density Sketches for Sampling and Estimation",
+              "paper_id": "ObWiIiKihBf",
+              "title": "Boomerang: Local sampling on image manifolds using diffusion models",
               "pattern_id": "pattern_100",
-              "score10": 5.657500000000001,
-              "review_count": 4,
-              "dispersion10": 2.7900000000000005,
-              "weight": 0.4246538027530607
+              "score10": 5.599000000000001,
+              "review_count": 5,
+              "dispersion10": 3.6900000000000004,
+              "weight": 0.3820382663599264
             },
             {
-              "paper_id": "F0KTk2plQzO",
-              "title": "Accelerating Guided Diffusion Sampling with Splitting Numerical Methods",
+              "paper_id": "s7gnrEtWSm",
+              "title": "Iterative $\\alpha$-(de)Blending: Learning a Deterministic Mapping Between Arbitrary Densities",
               "pattern_id": "pattern_100",
-              "score10": 6.679,
+              "score10": 6.571,
               "review_count": 5,
-              "dispersion10": 0.4500000000000004,
-              "weight": 1.2356961856745203
+              "dispersion10": 3.6900000000000004,
+              "weight": 0.3820382663599264
             }
           ]
         ],
@@ -449,54 +453,478 @@
           "pattern_paper_count": 148,
           "q50": 6.25,
           "q75": 6.49,
-          "count_roles_ge_q75": 2,
+          "count_roles_ge_q75": 1,
+          "roles_ge_q75": {
+            "Methodology": true,
+            "Novelty": false,
+            "Storyteller": false
+          },
+          "avg_ge_q50": false,
+          "avg_score": 6.203333333333244
+        }
+      }
+    },
+    {
+      "pass": true,
+      "avg_score": 7.1733333333332245,
+      "reviews": [
+        {
+          "reviewer": "Reviewer A",
+          "role": "Methodology",
+          "score": 7.019999999999894,
+          "feedback": "Main gaps: Theoretical justification for topological isomorphism weak, Complex implementation details may hinder reproducibility, High computational complexity compared to simpler approaches. Anchored against 9 papers."
+        },
+        {
+          "reviewer": "Reviewer B",
+          "role": "Novelty",
+          "score": 6.9899999999998945,
+          "feedback": "Main gaps: Theoretical justification for the topological isomorphism between generic priors and MRI trajectories, Empirical validation of the manifold alignment approach, Comparison with other state-of-the-art MRI reconstruction methods beyond the ones mentioned. Anchored against 9 papers."
+        },
+        {
+          "reviewer": "Reviewer C",
+          "role": "Storyteller",
+          "score": 7.509999999999883,
+          "feedback": "Main gaps: Theoretical justification for topological isomorphism claim between generic priors and MRI trajectories, Lack of specific experimental results and quantitative comparisons with state-of-the-art methods, Missing computational complexity analysis compared to existing approaches. Anchored against 9 papers."
+        }
+      ],
+      "main_issue": "novelty",
+      "suggestions": [
+        "从novelty维度选择创新Pattern",
+        "注入长尾Pattern提升新颖性"
+      ],
+      "audit": {
+        "pattern_id": "pattern_49",
+        "anchors": [
+          {
+            "paper_id": "66arKkGiFy",
+            "title": "Plug-and-Play Posterior Sampling under Mismatched Measurement and Prior Models",
+            "pattern_id": "pattern_49",
+            "score10": 5.9319999999999995,
+            "review_count": 5,
+            "dispersion10": 1.08,
+            "weight": 0.8614228217442572
+          },
+          {
+            "paper_id": "d7pr2doXn3",
+            "title": "Hybrid Regularization Improves Diffusion-based Inverse Problem Solving",
+            "pattern_id": "pattern_49",
+            "score10": 6.004,
+            "review_count": 5,
+            "dispersion10": 0.7200000000000006,
+            "weight": 1.0417206216442176
+          },
+          {
+            "paper_id": "t9l63huPRt",
+            "title": "Lightning-Fast Image Inversion and Editing for Text-to-Image Diffusion Models",
+            "pattern_id": "pattern_49",
+            "score10": 6.292,
+            "review_count": 5,
+            "dispersion10": 1.2600000000000002,
+            "weight": 0.7928139244371923
+          },
+          {
+            "paper_id": "TtUh0TOlGX",
+            "title": "Regularization by Texts for Latent Diffusion Inverse Solvers",
+            "pattern_id": "pattern_49",
+            "score10": 6.49,
+            "review_count": 4,
+            "dispersion10": 0.9000000000000008,
+            "weight": 0.8470725854916313
+          },
+          {
+            "paper_id": "9_gsMA8MRKQ",
+            "title": "Pseudoinverse-Guided Diffusion Models for Inverse Problems",
+            "pattern_id": "pattern_49",
+            "score10": 6.724,
+            "review_count": 5,
+            "dispersion10": 1.35,
+            "weight": 0.7624508379693851
+          },
+          {
+            "paper_id": "1YO4EE3SPB",
+            "title": "A Variational Perspective on Solving Inverse Problems with Diffusion Models",
+            "pattern_id": "pattern_49",
+            "score10": 5.859999999999999,
+            "review_count": 5,
+            "dispersion10": 1.08,
+            "weight": 0.8614228217442572
+          },
+          {
+            "paper_id": "OnD9zGAGT0k",
+            "title": "Diffusion Posterior Sampling for General Noisy Inverse Problems",
+            "pattern_id": "pattern_49",
+            "score10": 7.174000000000001,
+            "review_count": 5,
+            "dispersion10": 2.250000000000001,
+            "weight": 0.5513106059163244
+          },
+          {
+            "paper_id": "6EUtjXAvmj",
+            "title": "Variational Diffusion Posterior Sampling with Midpoint Guidance",
+            "pattern_id": "pattern_49",
+            "score10": 6.724,
+            "review_count": 5,
+            "dispersion10": 0.18000000000000016,
+            "weight": 1.5184402281593683
+          },
+          {
+            "paper_id": "U3PBITXNG6",
+            "title": "InverseBench: Benchmarking Plug-and-Play Diffusion Priors for Inverse Problems in Physical Sciences",
+            "pattern_id": "pattern_49",
+            "score10": 6.544,
+            "review_count": 5,
+            "dispersion10": 0.9000000000000008,
+            "weight": 0.9430312995937128
+          }
+        ],
+        "role_details": {
+          "Methodology": {
+            "comparisons": [
+              {
+                "paper_id": "66arKkGiFy",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Novel manifold alignment approach surpasses standard posterior sampling methods. score10: 5.9"
+              },
+              {
+                "paper_id": "d7pr2doXn3",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Spatio-Temporal ODE framework more innovative than hybrid regularization. score10: 6.0"
+              },
+              {
+                "paper_id": "t9l63huPRt",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "Manifold alignment approach more novel than image inversion techniques. score10: 6.3"
+              },
+              {
+                "paper_id": "TtUh0TOlGX",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "Spatio-Temporal ODE framework more innovative than text-based regularization. score10: 6.5"
+              },
+              {
+                "paper_id": "9_gsMA8MRKQ",
+                "judgement": "tie",
+                "confidence": 0.5,
+                "rationale": "Manifold alignment approach comparable to pseudoinverse guidance. score10: 6.7"
+              },
+              {
+                "paper_id": "1YO4EE3SPB",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "Spatio-Temporal ODE framework more innovative than variational approaches. score10: 5.9"
+              },
+              {
+                "paper_id": "OnD9zGAGT0k",
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Manifold alignment approach less generalizable than posterior sampling. score10: 7.2"
+              },
+              {
+                "paper_id": "6EUtjXAvmj",
+                "judgement": "tie",
+                "confidence": 0.5,
+                "rationale": "Spatio-Temporal ODE framework comparable to midpoint guidance. score10: 6.7"
+              },
+              {
+                "paper_id": "U3PBITXNG6",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Novel manifold alignment approach more innovative than benchmarking framework. score10: 6.5"
+              }
+            ],
+            "main_gaps": [
+              "Theoretical justification for topological isomorphism weak",
+              "Complex implementation details may hinder reproducibility",
+              "High computational complexity compared to simpler approaches"
+            ],
+            "score": 7.019999999999894,
+            "loss": 0.09262709290474241,
+            "avg_confidence": 0.6111111111111112,
+            "monotonic_violations": 0
+          },
+          "Novelty": {
+            "comparisons": [
+              {
+                "paper_id": "66arKkGiFy",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "Manifold alignment somewhat more novel than mismatched models. score10: 5.9"
+              },
+              {
+                "paper_id": "d7pr2doXn3",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "ODE alignment somewhat more novel than hybrid regularization. score10: 6.0"
+              },
+              {
+                "paper_id": "t9l63huPRt",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "MRI alignment somewhat more novel than image inversion. score10: 6.3"
+              },
+              {
+                "paper_id": "TtUh0TOlGX",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "ODE alignment somewhat more novel than text regularization. score10: 6.5"
+              },
+              {
+                "paper_id": "9_gsMA8MRKQ",
+                "judgement": "tie",
+                "confidence": 0.6,
+                "rationale": "Manifold alignment comparable to pseudoinverse guidance. score10: 6.7"
+              },
+              {
+                "paper_id": "1YO4EE3SPB",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "ODE alignment somewhat more novel than variational perspective. score10: 5.9"
+              },
+              {
+                "paper_id": "OnD9zGAGT0k",
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "General sampling more novel than MRI alignment. score10: 7.2"
+              },
+              {
+                "paper_id": "6EUtjXAvmj",
+                "judgement": "tie",
+                "confidence": 0.6,
+                "rationale": "Manifold alignment comparable to midpoint guidance. score10: 6.7"
+              },
+              {
+                "paper_id": "U3PBITXNG6",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Novel MRI approach more novel than benchmark. score10: 6.5"
+              }
+            ],
+            "main_gaps": [
+              "Theoretical justification for the topological isomorphism between generic priors and MRI trajectories",
+              "Empirical validation of the manifold alignment approach",
+              "Comparison with other state-of-the-art MRI reconstruction methods beyond the ones mentioned",
+              "Analysis of the computational complexity of the proposed method",
+              "Discussion of the limitations of the approach, especially for different types of MRI data"
+            ],
+            "score": 6.9899999999998945,
+            "loss": 0.08967823718120665,
+            "avg_confidence": 0.6111111111111112,
+            "monotonic_violations": 0
+          },
+          "Storyteller": {
+            "comparisons": [
+              {
+                "paper_id": "66arKkGiFy",
+                "judgement": "better",
+                "confidence": 0.8,
+                "rationale": "Novel manifold alignment framework more innovative than mismatched models approach, score10: 5.9"
+              },
+              {
+                "paper_id": "d7pr2doXn3",
+                "judgement": "better",
+                "confidence": 0.8,
+                "rationale": "Spatio-Temporal ODE Alignment more comprehensive than hybrid regularization for MRI, score10: 6.0"
+              },
+              {
+                "paper_id": "t9l63huPRt",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Manifold alignment more innovative than image inversion for text-to-image models, score10: 6.3"
+              },
+              {
+                "paper_id": "TtUh0TOlGX",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Unified dynamic system more comprehensive than text-based regularization, score10: 6.5"
+              },
+              {
+                "paper_id": "9_gsMA8MRKQ",
+                "judgement": "better",
+                "confidence": 0.6,
+                "rationale": "Manifold alignment more innovative than pseudoinverse-guided diffusion approach, score10: 6.7"
+              },
+              {
+                "paper_id": "1YO4EE3SPB",
+                "judgement": "better",
+                "confidence": 0.8,
+                "rationale": "Spatio-Temporal ODE Alignment more comprehensive than variational perspective, score10: 5.9"
+              },
+              {
+                "paper_id": "OnD9zGAGT0k",
+                "judgement": "worse",
+                "confidence": 0.6,
+                "rationale": "Anchor addresses general problems with strong theory, story focuses on specific MRI application, score10: 7.2"
+              },
+              {
+                "paper_id": "6EUtjXAvmj",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Manifold alignment more innovative than variational diffusion with midpoint guidance, score10: 6.7"
+              },
+              {
+                "paper_id": "U3PBITXNG6",
+                "judgement": "better",
+                "confidence": 0.7,
+                "rationale": "Novel methodological approach versus benchmarking existing methods, score10: 6.5"
+              }
+            ],
+            "main_gaps": [
+              "Theoretical justification for topological isomorphism claim between generic priors and MRI trajectories",
+              "Lack of specific experimental results and quantitative comparisons with state-of-the-art methods",
+              "Missing computational complexity analysis compared to existing approaches",
+              "Limited discussion on generalizability to other inverse problems or medical imaging modalities",
+              "Insufficient implementation details for the Spatio-Temporal ODE and DEIS solver"
+            ],
+            "score": 7.509999999999883,
+            "loss": 0.09557967860659525,
+            "avg_confidence": 0.7111111111111111,
+            "monotonic_violations": 0
+          }
+        },
+        "anchors_rounds": [
+          [
+            {
+              "paper_id": "66arKkGiFy",
+              "title": "Plug-and-Play Posterior Sampling under Mismatched Measurement and Prior Models",
+              "pattern_id": "pattern_49",
+              "score10": 5.9319999999999995,
+              "review_count": 5,
+              "dispersion10": 1.08,
+              "weight": 0.8614228217442572
+            },
+            {
+              "paper_id": "d7pr2doXn3",
+              "title": "Hybrid Regularization Improves Diffusion-based Inverse Problem Solving",
+              "pattern_id": "pattern_49",
+              "score10": 6.004,
+              "review_count": 5,
+              "dispersion10": 0.7200000000000006,
+              "weight": 1.0417206216442176
+            },
+            {
+              "paper_id": "t9l63huPRt",
+              "title": "Lightning-Fast Image Inversion and Editing for Text-to-Image Diffusion Models",
+              "pattern_id": "pattern_49",
+              "score10": 6.292,
+              "review_count": 5,
+              "dispersion10": 1.2600000000000002,
+              "weight": 0.7928139244371923
+            },
+            {
+              "paper_id": "TtUh0TOlGX",
+              "title": "Regularization by Texts for Latent Diffusion Inverse Solvers",
+              "pattern_id": "pattern_49",
+              "score10": 6.49,
+              "review_count": 4,
+              "dispersion10": 0.9000000000000008,
+              "weight": 0.8470725854916313
+            },
+            {
+              "paper_id": "9_gsMA8MRKQ",
+              "title": "Pseudoinverse-Guided Diffusion Models for Inverse Problems",
+              "pattern_id": "pattern_49",
+              "score10": 6.724,
+              "review_count": 5,
+              "dispersion10": 1.35,
+              "weight": 0.7624508379693851
+            },
+            {
+              "paper_id": "1YO4EE3SPB",
+              "title": "A Variational Perspective on Solving Inverse Problems with Diffusion Models",
+              "pattern_id": "pattern_49",
+              "score10": 5.859999999999999,
+              "review_count": 5,
+              "dispersion10": 1.08,
+              "weight": 0.8614228217442572
+            },
+            {
+              "paper_id": "OnD9zGAGT0k",
+              "title": "Diffusion Posterior Sampling for General Noisy Inverse Problems",
+              "pattern_id": "pattern_49",
+              "score10": 7.174000000000001,
+              "review_count": 5,
+              "dispersion10": 2.250000000000001,
+              "weight": 0.5513106059163244
+            }
+          ],
+          [
+            {
+              "paper_id": "6EUtjXAvmj",
+              "title": "Variational Diffusion Posterior Sampling with Midpoint Guidance",
+              "pattern_id": "pattern_49",
+              "score10": 6.724,
+              "review_count": 5,
+              "dispersion10": 0.18000000000000016,
+              "weight": 1.5184402281593683
+            },
+            {
+              "paper_id": "U3PBITXNG6",
+              "title": "InverseBench: Benchmarking Plug-and-Play Diffusion Priors for Inverse Problems in Physical Sciences",
+              "pattern_id": "pattern_49",
+              "score10": 6.544,
+              "review_count": 5,
+              "dispersion10": 0.9000000000000008,
+              "weight": 0.9430312995937128
+            }
+          ]
+        ],
+        "pass": {
+          "mode": "two_of_three_q75_and_avg_ge_q50",
+          "used_distribution": "global",
+          "pattern_paper_count": 15,
+          "q50": 6.183999999999999,
+          "q75": 6.49,
+          "count_roles_ge_q75": 3,
           "roles_ge_q75": {
             "Methodology": true,
             "Novelty": true,
-            "Storyteller": false
+            "Storyteller": true
           },
           "avg_ge_q50": true,
-          "avg_score": 6.896666666666563
+          "avg_score": 7.1733333333332245
         }
       }
     }
   ],
-  "results_dir": "results/run_20260130_171415_10130_1668ce",
+  "results_dir": "results/run_20260131_061315_2446_8af9ed",
   "novelty_report": null,
   "recall_audit": {
     "final_top_k": [
       {
         "pattern_id": "pattern_100",
         "name": "Reframing Diffusion Sampling Efficiency",
-        "final_score": 1.2027124646514291,
-        "path1_score": 1.0420179911407141,
+        "final_score": 1.2026638745783262,
+        "path1_score": 1.042071011378489,
         "path2_score": 0.0,
-        "path3_score": 0.160694473510715,
+        "path3_score": 0.1605928631998373,
         "cluster_size": 148
       },
       {
         "pattern_id": "pattern_115",
         "name": "Semantic Alignment for Compositional Generation",
-        "final_score": 0.6742123824870174,
-        "path1_score": 0.25360637254690155,
+        "final_score": 0.6735940887857403,
+        "path1_score": 0.2535108984477373,
         "path2_score": 0.020000000000000004,
-        "path3_score": 0.40060600994011586,
+        "path3_score": 0.40008319033800305,
         "cluster_size": 107
       },
       {
         "pattern_id": "pattern_102",
         "name": "Text to 3D generation robustness",
-        "final_score": 0.47990039900189596,
-        "path1_score": 0.2569578510434942,
+        "final_score": 0.4798408276513819,
+        "path1_score": 0.256719586182714,
         "path2_score": 0.020000000000000004,
-        "path3_score": 0.2029425479584017,
+        "path3_score": 0.2031212414686679,
         "cluster_size": 50
       },
       {
         "pattern_id": "pattern_49",
         "name": "Reframing Inverse Problems with Diffusion",
-        "final_score": 0.3981507520804429,
-        "path1_score": 0.25674126856215174,
+        "final_score": 0.3983455450348122,
+        "path1_score": 0.256936061516521,
         "path2_score": 0.0,
         "path3_score": 0.1414094835182912,
         "cluster_size": 15
@@ -504,17 +932,17 @@
       {
         "pattern_id": "pattern_114",
         "name": "Reframing Video Generation Challenges",
-        "final_score": 0.3709586336816719,
-        "path1_score": 0.2758232053383023,
+        "final_score": 0.3707368921092804,
+        "path1_score": 0.27548492296730803,
         "path2_score": 0.0,
-        "path3_score": 0.09513542834336963,
+        "path3_score": 0.09525196914197237,
         "cluster_size": 44
       },
       {
         "pattern_id": "pattern_57",
         "name": "Preference Alignment Through Distributional Modeling",
-        "final_score": 0.27320096864655324,
-        "path1_score": 0.27320096864655324,
+        "final_score": 0.2733679958792109,
+        "path1_score": 0.2733679958792109,
         "path2_score": 0.0,
         "path3_score": 0.0,
         "cluster_size": 111
@@ -522,8 +950,8 @@
       {
         "pattern_id": "pattern_94",
         "name": "Reframing Generation Through Multi-Feature Integration",
-        "final_score": 0.2678935023439488,
-        "path1_score": 0.2678935023439488,
+        "final_score": 0.268135976468661,
+        "path1_score": 0.268135976468661,
         "path2_score": 0.0,
         "path3_score": 0.0,
         "cluster_size": 34
@@ -531,8 +959,8 @@
       {
         "pattern_id": "pattern_68",
         "name": "Language Model Driven Planning Paradigms",
-        "final_score": 0.2573694247145569,
-        "path1_score": 0.2573694247145569,
+        "final_score": 0.25709575084425457,
+        "path1_score": 0.25709575084425457,
         "path2_score": 0.0,
         "path3_score": 0.0,
         "cluster_size": 20
@@ -540,8 +968,8 @@
       {
         "pattern_id": "pattern_7",
         "name": "Reframing Audio Understanding Through Multimodal and Probabilistic Learning",
-        "final_score": 0.25519788326709325,
-        "path1_score": 0.25519788326709325,
+        "final_score": 0.25517635904314184,
+        "path1_score": 0.25517635904314184,
         "path2_score": 0.0,
         "path3_score": 0.0,
         "cluster_size": 41
@@ -549,10 +977,10 @@
       {
         "pattern_id": "pattern_99",
         "name": "Frequency Aware Adaptive Restoration",
-        "final_score": 0.15351716991612852,
+        "final_score": 0.15366342738561112,
         "path1_score": 0.0,
         "path2_score": 0.0,
-        "path3_score": 0.15351716991612852,
+        "path3_score": 0.15366342738561112,
         "cluster_size": 23
       }
     ],
@@ -560,121 +988,121 @@
       "top_ideas": [
         {
           "idea_id": "idea_8082",
-          "similarity": 0.698787253912186,
+          "similarity": 0.6985087949277553,
           "snippet": "Utilize image diffusion models to address video inverse problems by treating the time dimension as a batch dimension and ensuring batch consistency.",
           "pattern_count": 0
         },
         {
           "idea_id": "idea_7839",
-          "similarity": 0.6925006635246769,
+          "similarity": 0.6914826236662335,
           "snippet": "Combine diffusion synchronization and score distillation sampling to enable zero-shot image generation in arbitrary spaces with weak conditioning.",
           "pattern_count": 0
         },
         {
           "idea_id": "idea_5588",
-          "similarity": 0.6895580133457557,
+          "similarity": 0.68871230741827,
           "snippet": "Integrate autoregressive models with diffusion transformers to enhance long video generation by leveraging spatial and temporal information.",
           "pattern_count": 1
         },
         {
           "idea_id": "idea_3845",
-          "similarity": 0.683002421616383,
+          "similarity": 0.6834199896980272,
           "snippet": "Reframe autoregressive sequence generation as an imitation learning problem to address compounding errors and improve sequence quality.",
           "pattern_count": 1
         },
         {
           "idea_id": "idea_4171",
-          "similarity": 0.669733755859872,
+          "similarity": 0.6703399411716524,
           "snippet": "Leverage diffusion models for flexible and controlled human motion generation through novel composition methods.",
           "pattern_count": 1
         },
         {
           "idea_id": "idea_4315",
-          "similarity": 0.6691546269459623,
+          "similarity": 0.6689131156436892,
           "snippet": "Introduce a diffusion model that learns from a single motion sequence to synthesize diverse and realistic animations without additional training.",
           "pattern_count": 0
         },
         {
           "idea_id": "idea_6340",
-          "similarity": 0.6653457862438185,
+          "similarity": 0.6658922752418643,
           "snippet": "Integrate text and drag signals for precise and ambiguity-free image editing using diffusion models.",
           "pattern_count": 0
         },
         {
           "idea_id": "idea_4133",
-          "similarity": 0.6615417742413534,
+          "similarity": 0.6608986420630016,
           "snippet": "Enhance diffusion model diversity by annealing the conditioning signal during sampling to balance diversity and quality.",
           "pattern_count": 1
         },
         {
-          "idea_id": "idea_5061",
-          "similarity": 0.6578281010411707,
-          "snippet": "Introduce block diffusion models that combine the strengths of autoregressive and diffusion models to enable flexible-length generation and improved inference efficiency.",
-          "pattern_count": 0
-        },
-        {
           "idea_id": "idea_6252",
-          "similarity": 0.6571382807573636,
+          "similarity": 0.6578156559252663,
           "snippet": "Improve diffusion model training efficiency and generation quality by aligning noisy input states with clean image representations from external encoders.",
           "pattern_count": 1
         },
         {
+          "idea_id": "idea_5061",
+          "similarity": 0.657376223827883,
+          "snippet": "Introduce block diffusion models that combine the strengths of autoregressive and diffusion models to enable flexible-length generation and improved inference efficiency.",
+          "pattern_count": 0
+        },
+        {
           "idea_id": "idea_4542",
-          "similarity": 0.6569671531078637,
+          "similarity": 0.6560237383255524,
           "snippet": "Extend diffusion models to pixel-level sketch generation with scale-adaptive guidance to balance recognizability and complexity.",
           "pattern_count": 0
         },
         {
           "idea_id": "idea_5696",
-          "similarity": 0.6536407642114734,
+          "similarity": 0.6529599225208346,
           "snippet": "Transform discrete diffusion model learning into a binary classification task to improve performance in language and image generation.",
           "pattern_count": 1
         },
         {
           "idea_id": "idea_1665",
-          "similarity": 0.6469844599366237,
+          "similarity": 0.647587286493629,
           "snippet": "Enhance text-to-image generation by integrating retrieval mechanisms to improve image fidelity for rare entities.",
           "pattern_count": 0
         },
         {
           "idea_id": "idea_7137",
-          "similarity": 0.6434235617863923,
+          "similarity": 0.6427393771106363,
           "snippet": "Introduce discrete diffusion models to address the limitations of autoregressive models in complex reasoning and planning tasks.",
           "pattern_count": 1
         },
         {
-          "idea_id": "idea_7456",
-          "similarity": 0.6423946276087356,
-          "snippet": "Integrate video generation and novel view synthesis into a unified diffusion model for consistent dynamic 3D content creation.",
-          "pattern_count": 1
-        },
-        {
           "idea_id": "idea_4607",
-          "similarity": 0.6418531714053793,
+          "similarity": 0.6423401537913025,
           "snippet": "Introduce a filtering-based approach to efficiently and accurately sample from the Bayesian posterior in diffusion models for linear inverse problems.",
           "pattern_count": 1
         },
         {
+          "idea_id": "idea_7456",
+          "similarity": 0.641798965456785,
+          "snippet": "Integrate video generation and novel view synthesis into a unified diffusion model for consistent dynamic 3D content creation.",
+          "pattern_count": 1
+        },
+        {
           "idea_id": "idea_4280",
-          "similarity": 0.6379947081677331,
+          "similarity": 0.6379408976078546,
           "snippet": "Introduce an autoregressive diffusion model for direct raw waveform generation, enabling high-fidelity and temporally coherent speech synthesis.",
           "pattern_count": 1
         },
         {
-          "idea_id": "idea_5733",
-          "similarity": 0.6340159313672539,
-          "snippet": "Introduce Condition Contrastive Alignment to unify language and visual modalities in autoregressive visual generation, eliminating the need for guided sampling.",
-          "pattern_count": 1
-        },
-        {
           "idea_id": "idea_8069",
-          "similarity": 0.633407636852603,
+          "similarity": 0.6346541395333904,
           "snippet": "Introduce a unified model for scalable visual content generation across multiple modalities by leveraging a view-wise sampling algorithm and autoregressive generation.",
           "pattern_count": 0
         },
         {
+          "idea_id": "idea_5733",
+          "similarity": 0.6337772461193432,
+          "snippet": "Introduce Condition Contrastive Alignment to unify language and visual modalities in autoregressive visual generation, eliminating the need for guided sampling.",
+          "pattern_count": 1
+        },
+        {
           "idea_id": "idea_7957",
-          "similarity": 0.6327241586415948,
+          "similarity": 0.6335033079371205,
           "snippet": "Introduce a unified diffusion model that combines blurring and noise to leverage both high-frequency and low-frequency image structures for improved generative performance.",
           "pattern_count": 1
         }
@@ -682,39 +1110,39 @@
       "pattern_scores_topn": [
         {
           "pattern_id": "pattern_100",
-          "score": 1.0420179911407141
+          "score": 1.042071011378489
         },
         {
           "pattern_id": "pattern_114",
-          "score": 0.2758232053383023
+          "score": 0.27548492296730803
         },
         {
           "pattern_id": "pattern_57",
-          "score": 0.27320096864655324
+          "score": 0.2733679958792109
         },
         {
           "pattern_id": "pattern_94",
-          "score": 0.2678935023439488
+          "score": 0.268135976468661
         },
         {
           "pattern_id": "pattern_68",
-          "score": 0.2573694247145569
-        },
-        {
-          "pattern_id": "pattern_102",
-          "score": 0.2569578510434942
+          "score": 0.25709575084425457
         },
         {
           "pattern_id": "pattern_49",
-          "score": 0.25674126856215174
+          "score": 0.256936061516521
+        },
+        {
+          "pattern_id": "pattern_102",
+          "score": 0.256719586182714
         },
         {
           "pattern_id": "pattern_7",
-          "score": 0.25519788326709325
+          "score": 0.25517635904314184
         },
         {
           "pattern_id": "pattern_115",
-          "score": 0.25360637254690155
+          "score": 0.2535108984477373
         }
       ]
     },
@@ -754,14 +1182,14 @@
       "top_papers": [
         {
           "paper_id": "VM8batVBWvg",
-          "similarity": 0.743646043364871,
+          "similarity": 0.7431758211848638,
           "title": "Discrete Predictor-Corrector Diffusion Models for Image Synthesis",
           "quality": 0.7350000000000001,
           "review_count": 4
         },
         {
           "paper_id": "mRieQgMtNTQ",
-          "similarity": 0.748636365887303,
+          "similarity": 0.749349599856488,
           "title": "Zero-Shot Image Restoration Using Denoising Diffusion Null-Space Model",
           "quality": 0.7160000000000001,
           "review_count": 5
@@ -775,119 +1203,119 @@
         },
         {
           "paper_id": "o3yygm3lnzS",
-          "similarity": 0.6442516264772811,
+          "similarity": 0.645059456981513,
           "title": "PV3D: A 3D Generative Model for Portrait Video Generation",
           "quality": 0.7580000000000001,
           "review_count": 5
         },
         {
           "paper_id": "op-ceGueqc4",
-          "similarity": 0.7307187725747698,
+          "similarity": 0.731164912217241,
           "title": "Scaling Laws For Deep Learning Based Image Reconstruction",
           "quality": 0.6566666666666666,
           "review_count": 6
         },
         {
           "paper_id": "jQj-_rLVXsj",
-          "similarity": 0.6839444947691099,
+          "similarity": 0.6850361680357394,
           "title": "DiffuSeq: Sequence to Sequence Text Generation with Diffusion Models",
           "quality": 0.683,
           "review_count": 5
         },
         {
           "paper_id": "U2g8OGONA_V",
-          "similarity": 0.668828166098264,
+          "similarity": 0.6691123252035699,
           "title": "Multi-domain image generation and translation with identifiability guarantees",
           "quality": 0.6809999999999999,
           "review_count": 5
         },
         {
           "paper_id": "UaAD-Nu86WX",
-          "similarity": 0.6319241854828157,
+          "similarity": 0.632414043507732,
           "title": "DiGress: Discrete Denoising diffusion for graph generation",
           "quality": 0.7162499999999999,
           "review_count": 4
         },
         {
           "paper_id": "8JqINxA-2a",
-          "similarity": 0.6651166121372565,
+          "similarity": 0.6641501075980243,
           "title": "Unified Discrete Diffusion for Simultaneous Vision-Language Generation",
           "quality": 0.6679999999999999,
           "review_count": 5
         },
         {
           "paper_id": "gzqrANCF4g",
-          "similarity": 0.6860915288611655,
+          "similarity": 0.6859227019076954,
           "title": "Language Model Beats Diffusion - Tokenizer is key to visual generation",
           "quality": 0.635,
           "review_count": 4
         },
         {
           "paper_id": "kJUS5nD0vPB",
-          "similarity": 0.5835257952754723,
+          "similarity": 0.5838405672602586,
           "title": "Out-of-Distribution Detection and Selective Generation for Conditional Language Models",
           "quality": 0.74125,
           "review_count": 4
         },
         {
           "paper_id": "1-MBdJssZ-S",
-          "similarity": 0.6386919968293018,
+          "similarity": 0.6390190877974421,
           "title": "Discrete Contrastive Diffusion for Cross-Modal Music and Image Generation",
           "quality": 0.666,
           "review_count": 5
         },
         {
           "paper_id": "8pusxkLEQO",
-          "similarity": 0.7372004899152699,
+          "similarity": 0.7381035597318577,
           "title": "ARLON: Boosting Diffusion Transformers with Autoregressive Models for Long Video Generation",
           "quality": 0.5680000000000001,
           "review_count": 5
         },
         {
           "paper_id": "hQwb-lbM6EL",
-          "similarity": 0.5896811082017065,
+          "similarity": 0.5894795984307485,
           "title": "InCoder: A Generative Model for Code Infilling and Synthesis",
           "quality": 0.7060000000000001,
           "review_count": 5
         },
         {
           "paper_id": "bvpkw7UIRdU",
-          "similarity": 0.5477413198690516,
+          "similarity": 0.5481531712831712,
           "title": "On the Usefulness of Embeddings, Clusters and Strings for Text Generation Evaluation",
           "quality": 0.756,
           "review_count": 5
         },
         {
           "paper_id": "H2Gxil855b",
-          "similarity": 0.6710359166218967,
+          "similarity": 0.6717689473444204,
           "title": "Atlas Gaussians Diffusion for 3D Generation",
           "quality": 0.616,
           "review_count": 5
         },
         {
           "paper_id": "BWuBDdXVnH",
-          "similarity": 0.7276301326175034,
+          "similarity": 0.7268618302213342,
           "title": "ControlAR: Controllable Image Generation with Autoregressive Models",
           "quality": 0.568,
           "review_count": 5
         },
         {
           "paper_id": "M2SsqpxGtc",
-          "similarity": 0.6660265356677079,
+          "similarity": 0.6664708055430546,
           "title": "CubeDiff: Repurposing Diffusion-Based Image Models for Panorama Generation",
           "quality": 0.616,
           "review_count": 5
         },
         {
           "paper_id": "OuV9ZrkQlc",
-          "similarity": 0.6920748773409096,
+          "similarity": 0.6906768932710333,
           "title": "ImagenHub: Standardizing the evaluation of conditional image generation models",
           "quality": 0.5880000000000001,
           "review_count": 5
         },
         {
           "paper_id": "QE1LFzXQPL",
-          "similarity": 0.715050180454676,
+          "similarity": 0.7146021230031208,
           "title": "ImageFolder: Autoregressive Image Generation with Folded Tokens",
           "quality": 0.5680000000000001,
           "review_count": 5
@@ -896,19 +1324,19 @@
       "pattern_scores_topn": [
         {
           "pattern_id": "pattern_115",
-          "score": 0.40060600994011586
+          "score": 0.40008319033800305
         },
         {
           "pattern_id": "pattern_102",
-          "score": 0.2029425479584017
+          "score": 0.2031212414686679
         },
         {
           "pattern_id": "pattern_100",
-          "score": 0.160694473510715
+          "score": 0.1605928631998373
         },
         {
           "pattern_id": "pattern_99",
-          "score": 0.15351716991612852
+          "score": 0.15366342738561112
         },
         {
           "pattern_id": "pattern_49",
@@ -916,30 +1344,32 @@
         },
         {
           "pattern_id": "pattern_24",
-          "score": 0.12967439743461712
+          "score": 0.12977491905678132
         },
         {
           "pattern_id": "pattern_96",
-          "score": 0.12522155319707132
+          "score": 0.12531570836099942
         },
         {
           "pattern_id": "pattern_101",
-          "score": 0.11756731713905033
+          "score": 0.11752714124937146
         },
         {
           "pattern_id": "pattern_114",
-          "score": 0.09513542834336963
+          "score": 0.09525196914197237
         }
       ]
     }
   },
   "review_summary": {
-    "total_reviews": 1,
-    "final_score": 6.896666666666563
+    "total_reviews": 2,
+    "final_score": 7.1733333333332245
   },
   "refinement_summary": {
-    "total_refinements": 0,
-    "issues_addressed": []
+    "total_refinements": 1,
+    "issues_addressed": [
+      "novelty"
+    ]
   },
   "verification_summary": {
     "collision_detected": false,

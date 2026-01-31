@@ -182,3 +182,30 @@ If you find **Idea2Story** useful, please cite:
 </a>
 
 
+---
+
+## 🌐 Frontend (Local Web UI)
+
+Run a minimal local UI to launch the pipeline and view **only** high-level stage + final results (no raw logs on screen).
+
+### Start
+
+```bash
+python frontend/server/app.py --host 127.0.0.1 --port 8080
+```
+
+Open in your browser:
+
+```text
+http://127.0.0.1:8080/
+```
+
+### What you can do in the UI
+- Run the same pipeline entrypoint (`idea2story_pipeline.py`) from a web page.
+- Configure `SILICONFLOW_API_KEY`, `LLM_API_URL`, `LLM_MODEL` for the current run (not persisted by the server).
+- Toggle Novelty / Verification.
+- Download the current run logs as a zip.
+
+> **Note:** Novelty and Verification are still being polished. Enabling them can take a *very long* time (e.g., building local indexes / extra checks). For now, it’s recommended to keep both toggles **off** unless you specifically need them.
+
+For more details, see `frontend/README.md`.
