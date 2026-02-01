@@ -52,6 +52,9 @@ try:
         NOVELTY_INDEX_BUILD_MAX_RETRIES,
         NOVELTY_INDEX_BUILD_SLEEP_SEC,
         NOVELTY_REQUIRE_EMBEDDING,
+        INDEX_DIR_MODE,
+        EMBEDDING_PROVIDER,
+        EMBEDDING_API_URL,
     )
     from pipeline.config import PipelineConfig
     from idea2paper.infra.result_bundler import ResultBundler
@@ -86,6 +89,9 @@ except ImportError:
         NOVELTY_INDEX_BUILD_MAX_RETRIES,
         NOVELTY_INDEX_BUILD_SLEEP_SEC,
         NOVELTY_REQUIRE_EMBEDDING,
+        INDEX_DIR_MODE,
+        EMBEDDING_PROVIDER,
+        EMBEDDING_API_URL,
     )
     from pipeline.config import PipelineConfig
     from idea2paper.infra.result_bundler import ResultBundler
@@ -114,6 +120,12 @@ def ensure_required_indexes(logger=None):
         "novelty_enable": NOVELTY_ENABLE,
         "recall_use_offline_index": PipelineConfig.RECALL_USE_OFFLINE_INDEX,
         "allow_build": PipelineConfig.INDEX_ALLOW_BUILD,
+        "index_dir_mode": INDEX_DIR_MODE,
+        "novelty_index_dir": str(NOVELTY_INDEX_DIR),
+        "recall_index_dir": str(PipelineConfig.RECALL_INDEX_DIR),
+        "embedding_provider": EMBEDDING_PROVIDER,
+        "embedding_api_url": EMBEDDING_API_URL,
+        "embedding_model": EMBEDDING_MODEL,
     })
 
     # Novelty index preflight

@@ -3,12 +3,13 @@ from typing import Optional, List
 
 import requests
 
-from idea2paper.config import LLM_API_KEY
+from idea2paper.config import (
+    EMBEDDING_API_KEY,
+    EMBEDDING_API_URL,
+    EMBEDDING_MODEL,
+    EMBEDDING_PROVIDER,
+)
 from idea2paper.infra.run_context import get_logger
-
-
-EMBEDDING_URL = "https://api.siliconflow.cn/v1/embeddings"
-EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
 
 
 def get_embedding(text: str, logger=None, timeout: int = 120) -> Optional[List[float]]:
@@ -20,12 +21,12 @@ def get_embedding(text: str, logger=None, timeout: int = 120) -> Optional[List[f
         logger = get_logger()
     start_ts = time.time()
 
-    if not LLM_API_KEY:
+    if not EMBEDDING_API_KEY:
         if logger:
             logger.log_embedding_call(
                 request={
-                    "provider": "siliconflow",
-                    "url": EMBEDDING_URL,
+                    "provider": EMBEDDING_PROVIDER,
+                    "url": EMBEDDING_API_URL,
                     "model": EMBEDDING_MODEL,
                     "input_preview": text,
                     "timeout": timeout,
@@ -40,7 +41,7 @@ def get_embedding(text: str, logger=None, timeout: int = 120) -> Optional[List[f
         return None
 
     headers = {
-        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Authorization": f"Bearer {EMBEDDING_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -49,15 +50,15 @@ def get_embedding(text: str, logger=None, timeout: int = 120) -> Optional[List[f
     }
 
     try:
-        resp = requests.post(EMBEDDING_URL, headers=headers, json=payload, timeout=timeout)
+        resp = requests.post(EMBEDDING_API_URL, headers=headers, json=payload, timeout=timeout)
         resp.raise_for_status()
         data = resp.json()
         emb = data["data"][0]["embedding"]
         if logger:
             logger.log_embedding_call(
                 request={
-                    "provider": "siliconflow",
-                    "url": EMBEDDING_URL,
+                    "provider": EMBEDDING_PROVIDER,
+                    "url": EMBEDDING_API_URL,
                     "model": EMBEDDING_MODEL,
                     "input_preview": text,
                     "timeout": timeout,
@@ -73,8 +74,8 @@ def get_embedding(text: str, logger=None, timeout: int = 120) -> Optional[List[f
         if logger:
             logger.log_embedding_call(
                 request={
-                    "provider": "siliconflow",
-                    "url": EMBEDDING_URL,
+                    "provider": EMBEDDING_PROVIDER,
+                    "url": EMBEDDING_API_URL,
                     "model": EMBEDDING_MODEL,
                     "input_preview": text,
                     "timeout": timeout,
@@ -109,12 +110,12 @@ def get_embeddings_batch(texts: List[str], logger=None, timeout: int = 120) -> O
         logger = get_logger()
     start_ts = time.time()
 
-    if not LLM_API_KEY:
+    if not EMBEDDING_API_KEY:
         if logger:
             logger.log_embedding_call(
                 request={
-                    "provider": "siliconflow",
-                    "url": EMBEDDING_URL,
+                    "provider": EMBEDDING_PROVIDER,
+                    "url": EMBEDDING_API_URL,
                     "model": EMBEDDING_MODEL,
                     "input_preview": _preview_texts(texts),
                     "timeout": timeout,
@@ -130,7 +131,7 @@ def get_embeddings_batch(texts: List[str], logger=None, timeout: int = 120) -> O
         return None
 
     headers = {
-        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Authorization": f"Bearer {EMBEDDING_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -139,7 +140,7 @@ def get_embeddings_batch(texts: List[str], logger=None, timeout: int = 120) -> O
     }
 
     try:
-        resp = requests.post(EMBEDDING_URL, headers=headers, json=payload, timeout=timeout)
+        resp = requests.post(EMBEDDING_API_URL, headers=headers, json=payload, timeout=timeout)
         resp.raise_for_status()
         data = resp.json()
         embs = [item["embedding"] for item in data.get("data", [])]
@@ -148,8 +149,8 @@ def get_embeddings_batch(texts: List[str], logger=None, timeout: int = 120) -> O
         if logger:
             logger.log_embedding_call(
                 request={
-                    "provider": "siliconflow",
-                    "url": EMBEDDING_URL,
+                    "provider": EMBEDDING_PROVIDER,
+                    "url": EMBEDDING_API_URL,
                     "model": EMBEDDING_MODEL,
                     "input_preview": _preview_texts(texts),
                     "timeout": timeout,
@@ -166,8 +167,8 @@ def get_embeddings_batch(texts: List[str], logger=None, timeout: int = 120) -> O
         if logger:
             logger.log_embedding_call(
                 request={
-                    "provider": "siliconflow",
-                    "url": EMBEDDING_URL,
+                    "provider": EMBEDDING_PROVIDER,
+                    "url": EMBEDDING_API_URL,
                     "model": EMBEDDING_MODEL,
                     "input_preview": _preview_texts(texts),
                     "timeout": timeout,

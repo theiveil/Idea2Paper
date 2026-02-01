@@ -90,7 +90,13 @@ reliable autonomous scientific discovery.*
 ```bash
 pip install -r Paper-KG-Pipeline/requirements.txt
 ```
-> **Note:** The embedding model is currently fixed to `Qwen/Qwen3-Embedding-8B` (SiliconFlow) and cannot be changed yet. We plan to expand this to support more embedding models/providers in future updates.
+> **Note:** The embedding model is configurable via `EMBEDDING_MODEL` / `EMBEDDING_API_URL` (env or `i2p_config.json`). If you switch models, rebuild novelty/recall indexes or use model-specific index directories to avoid mismatch.  
+> **Constraint:** the embedding model must output **4096-dimensional** vectors (same as `Qwen/Qwen3-Embedding-8B`).  
+> **Recommended (auto_profile):** set `I2P_INDEX_DIR_MODE=auto_profile` to auto-map each embedding config to its own index dirs: `Paper-KG-Pipeline/output/novelty_index__{provider}__{model}__{urlhash}` and `.../recall_index__...`.  
+> Explicit `I2P_NOVELTY_INDEX_DIR` / `I2P_RECALL_INDEX_DIR` (env or `i2p_config.json`) override auto_profile.  
+> **Advanced (manual):** you can still use `profiles/` scripts to switch env + index dirs by hand.  
+> **Supported (no code changes):** OpenAI-compatible Embeddings APIs (`/v1/embeddings`) that accept `input` as a string or a list (e.g., SiliconFlow, OpenAI, and other OpenAI-compatible providers).  
+> **Not supported yet:** DashScope “native” embeddings endpoint (`/api/v1/services/embeddings/...`) requires an adapter.
 
 ### Configuration
 
@@ -104,6 +110,8 @@ python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your research idea"
 ```
 
 ## 🌐 Frontend (Local Web UI)
+
+> **Status:** The frontend is currently unstable. We recommend running the pipeline from the terminal for now. We will improve the frontend in future updates.
 
 Run a minimal local UI to launch the pipeline and view **only** high-level stage + final results (no raw logs on screen).
 

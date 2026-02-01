@@ -78,7 +78,13 @@ python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"
    - 复制 `.env.example` -> `.env`，填写 `SILICONFLOW_API_KEY` 等敏感键（不要提交）
    - 可选：复制 `i2p_config.example.json` -> `i2p_config.json` 调整阈值/anchors 等
 
-> **注意：** 当前 embedding 模型暂时固定为 `Qwen/Qwen3-Embedding-8B`（SiliconFlow），暂不支持切换。后续会扩展支持更多 embedding 模型/服务商。
+> **注意：** embedding 模型可通过 `EMBEDDING_MODEL` / `EMBEDDING_API_URL`（环境变量或 `i2p_config.json`）自由切换。切换模型后需重建 novelty/recall 索引，或使用带模型后缀的索引目录以避免不匹配。  
+> **约束：** embedding 模型必须输出 **4096 维**向量（与默认 `Qwen/Qwen3-Embedding-8B` 一致）。  
+> **推荐（auto_profile）：** 设置 `I2P_INDEX_DIR_MODE=auto_profile`，系统会按 embedding 配置自动切到专属索引目录：`Paper-KG-Pipeline/output/novelty_index__{provider}__{model}__{urlhash}` 和 `.../recall_index__...`。  
+> 若显式设置 `I2P_NOVELTY_INDEX_DIR` / `I2P_RECALL_INDEX_DIR`（环境变量或 `i2p_config.json`），会优先使用显式值。  
+> **高级用法（手动）：** 仍可使用 `profiles/` 脚本手动切换环境变量与索引目录。  
+> **当前可直接适配（无需改代码）：** 兼容 OpenAI Embeddings API 的 `/v1/embeddings`（要求 `input` 支持字符串或数组，例如 SiliconFlow、OpenAI 及其它 OpenAI-compatible 服务）。  
+> **暂不直接支持：** DashScope/百炼原生 embeddings 接口（`/api/v1/services/embeddings/...`），需要额外适配层。
 
 4. **运行**：
    ```bash
@@ -86,6 +92,8 @@ python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"
    ```
   
 ## 🌐 前端（本地 Web UI）
+
+> **状态：** 当前前端仍处于不稳定阶段，建议暂时使用终端运行项目，不要使用前端；后续会持续完善。
 
 运行一个极简的本地 UI，用于启动 pipeline，并且**只展示**高层阶段信息与最终结果（不在页面上展示原始日志内容）。
 

@@ -400,9 +400,15 @@ Return ONLY the corrected JSON:
             (r['avg_confidence'] < getattr(PipelineConfig, "DENSIFY_MIN_AVG_CONF", 0.45))
             for r in round1['role_details'].values()
         )
+        densify_enabled = getattr(PipelineConfig, "ANCHOR_DENSIFY_ENABLE", True)
 
         anchors_rounds = [anchors]
-        if densify_needed and pattern_id and self.review_index:
+        if densify_needed and not densify_enabled:
+            self._log_event("critic_densify_skipped", {
+                "pattern_id": pattern_id,
+                "reason": "disabled",
+            })
+        if densify_enabled and densify_needed and pattern_id and self.review_index:
             scores_round1 = [r['score'] for r in round1['role_details'].values()]
             S_hint = _safe_mean(scores_round1) if scores_round1 else 5.0
             additional = self.review_index.select_adaptive_anchors(

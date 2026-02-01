@@ -1,4 +1,6 @@
+import hashlib
 import os
+import re
 from pathlib import Path
 
 from .infra.dotenv import load_dotenv
@@ -91,6 +93,29 @@ LLM_MODEL = _get(
     cfg_path=["llm", "model"],
 )
 
+# ===================== Embedding API 配置 =====================
+# Embedding 可独立配置；默认沿用 SiliconFlow + Qwen3-Embedding-8B。
+EMBEDDING_PROVIDER = _get(
+    "EMBEDDING_PROVIDER",
+    "siliconflow",
+    cast=str,
+    cfg_path=["embedding", "provider"],
+)
+EMBEDDING_API_URL = _get(
+    "EMBEDDING_API_URL",
+    "https://api.siliconflow.cn/v1/embeddings",
+    cast=str,
+    cfg_path=["embedding", "api_url"],
+)
+EMBEDDING_MODEL = _get(
+    "EMBEDDING_MODEL",
+    "Qwen/Qwen3-Embedding-8B",
+    cast=str,
+    cfg_path=["embedding", "model"],
+)
+# Secret: only from env/.env; fallback to SILICONFLOW_API_KEY (LLM_API_KEY)
+EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY", "") or LLM_API_KEY
+
 # ===================== Run Logging 配置 =====================
 LOG_ROOT = _get(
     "I2P_LOG_DIR",
@@ -137,6 +162,41 @@ RESULTS_KEEP_LOG = _get(
     cfg_path=["results", "keep_log"],
 )
 
+# ===================== Index Dir Mode 配置 =====================
+INDEX_DIR_MODE = _get(
+    "I2P_INDEX_DIR_MODE",
+    "manual",
+    cast=str,
+    cfg_path=["index", "dir_mode"],
+)
+
+_PROFILE_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _sanitize_profile_component(value: str) -> str:
+    if value is None:
+        return ""
+    text = str(value)
+    text = text.replace("/", "_").replace(" ", "_")
+    return _PROFILE_SAFE_RE.sub("_", text)
+
+
+def _compute_profile_id(provider: str, model: str, api_url: str) -> str:
+    provider_s = _sanitize_profile_component(provider)
+    model_s = _sanitize_profile_component(model)
+    url_hash = hashlib.sha256(str(api_url).encode("utf-8")).hexdigest()[:8]
+    return f"{provider_s}__{model_s}__{url_hash}"
+
+
+if INDEX_DIR_MODE == "auto_profile":
+    _PROFILE_ID = _compute_profile_id(EMBEDDING_PROVIDER, EMBEDDING_MODEL, EMBEDDING_API_URL)
+    _DEFAULT_NOVELTY_INDEX_DIR = str(OUTPUT_DIR / f"novelty_index__{_PROFILE_ID}")
+    _DEFAULT_RECALL_INDEX_DIR = str(OUTPUT_DIR / f"recall_index__{_PROFILE_ID}")
+else:
+    _PROFILE_ID = None
+    _DEFAULT_NOVELTY_INDEX_DIR = str(OUTPUT_DIR / "novelty_index")
+    _DEFAULT_RECALL_INDEX_DIR = str(OUTPUT_DIR / "recall_index")
+
 # ===================== Novelty Check 配置 =====================
 NOVELTY_ENABLE = _get(
     "I2P_NOVELTY_ENABLE",
@@ -164,7 +224,7 @@ NOVELTY_MEDIUM_TH = _get(
 )
 NOVELTY_INDEX_DIR = _get(
     "I2P_NOVELTY_INDEX_DIR",
-    str(OUTPUT_DIR / "novelty_index"),
+    _DEFAULT_NOVELTY_INDEX_DIR,
     cast=Path,
     cfg_path=["novelty", "index_dir"],
 )
@@ -315,7 +375,7 @@ class PipelineConfig:
     )
     RECALL_INDEX_DIR = _get(
         "I2P_RECALL_INDEX_DIR",
-        str(OUTPUT_DIR / "recall_index"),
+        _DEFAULT_RECALL_INDEX_DIR,
         cast=Path,
         cfg_path=["recall", "index_dir"],
     )
@@ -409,6 +469,12 @@ class PipelineConfig:
         0.45,
         cast=float,
         cfg_path=["anchors", "densify_min_avg_conf"],
+    )
+    ANCHOR_DENSIFY_ENABLE = _get(
+        "I2P_ANCHOR_DENSIFY_ENABLE",
+        True,
+        cast=bool,
+        cfg_path=["anchors", "densify_enable"],
     )
 
     # Critic JSON reliability (quality-first)

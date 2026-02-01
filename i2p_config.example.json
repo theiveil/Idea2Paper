@@ -19,7 +19,7 @@
     "fixed_score": 7.0
   },
   "anchors": {
-    "__comment__": "Anchor selection + deterministic scoring knobs. Usually keep defaults unless you know what you're doing.",
+    "__comment__": "Anchor selection + deterministic scoring knobs. densify_enable=false skips adaptive densify (no Round2), reducing LLM calls/latency. Usually keep defaults unless you know what you're doing.",
     "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
     "max_initial": 7,
     "max_total": 9,
@@ -28,12 +28,19 @@
     "sigmoid_k": 1.2,
     "grid_step": 0.01,
     "densify_loss_threshold": 0.03,
-    "densify_min_avg_conf": 0.45
+    "densify_min_avg_conf": 0.45,
+    "densify_enable": true
   },
   "llm": {
     "__comment__": "LLM endpoint/model settings. The API key is read from env var SILICONFLOW_API_KEY in `.env` (do not put it here).",
     "api_url": "https://api.siliconflow.cn/v1/chat/completions",
     "model": "Pro/zai-org/GLM-4.7"
+  },
+  "embedding": {
+    "__comment__": "Embedding endpoint/model settings (non-sensitive). Secret EMBEDDING_API_KEY should stay in .env. Recommended: set index.dir_mode=auto_profile (or env I2P_INDEX_DIR_MODE) to auto-manage per-embedding index dirs, e.g. Paper-KG-Pipeline/output/novelty_index__siliconflow__Qwen_Qwen3-Embedding-8B__<hash>.",
+    "provider": "siliconflow",
+    "api_url": "https://api.siliconflow.cn/v1/embeddings",
+    "model": "Qwen/Qwen3-Embedding-8B"
   },
   "results": {
     "__comment__": "Aggregate final artifacts to repo-root results/run_.../ for better UX.",
@@ -48,7 +55,8 @@
     "collision_threshold": 0.88
   },
   "index": {
-    "__comment__": "Auto-prepare required indexes before running the pipeline. Quality-first: no silent downgrade; missing index will be built (resume) or fail if disabled.",
+    "__comment__": "Auto-prepare required indexes before running the pipeline. dir_mode=manual (default) uses fixed index_dir; dir_mode=auto_profile derives dirs from embedding provider/model/url.",
+    "dir_mode": "auto_profile",
     "auto_prepare": true,
     "allow_build": true
   },
@@ -61,8 +69,7 @@
     "embed_batch_size": 32,
     "embed_max_retries": 3,
     "embed_sleep_sec": 0.5,
-    "use_offline_index": true,
-    "index_dir": "Paper-KG-Pipeline/output/recall_index"
+    "use_offline_index": true
   },
   "novelty": {
     "__comment__": "Local novelty check against nodes_paper.json (ICLR 2025) + pivot on high similarity. Default: do NOT auto-build index during run; build offline first.",
@@ -70,7 +77,6 @@
     "top_k": 100,
     "high_th": 0.88,
     "medium_th": 0.82,
-    "index_dir": "Paper-KG-Pipeline/output/novelty_index",
     "auto_build_index": true,
     "index_batch_size": 32,
     "index_resume": true,
