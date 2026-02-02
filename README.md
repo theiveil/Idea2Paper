@@ -94,6 +94,8 @@ pip install -r Paper-KG-Pipeline/requirements.txt
 > **Constraint:** the embedding model must output **4096-dimensional** vectors (same as `Qwen/Qwen3-Embedding-8B`).  
 > **Recommended (auto_profile):** set `I2P_INDEX_DIR_MODE=auto_profile` to auto-map each embedding config to its own index dirs: `Paper-KG-Pipeline/output/novelty_index__{provider}__{model}__{urlhash}` and `.../recall_index__...`.  
 > Explicit `I2P_NOVELTY_INDEX_DIR` / `I2P_RECALL_INDEX_DIR` (env or `i2p_config.json`) override auto_profile.  
+> **Tip (speed/stability):** set `I2P_ANCHOR_DENSIFY_ENABLE=0` to skip Adaptive Densify; otherwise Phase 3 Critic can be much slower and may fail due to strict JSON validation.  
+> **Tip (debug):** if you repeatedly hit Critic JSON errors, set `I2P_CRITIC_STRICT_JSON=0` (or `critic.strict_json=false`) to disable strict mode and allow fallback.  
 > **Supported (no code changes):** OpenAI-compatible Embeddings APIs (`/v1/embeddings`) that accept `input` as a string or a list (e.g., SiliconFlow, OpenAI, and other OpenAI-compatible providers).  
 > **Not supported yet:** DashScope “native” embeddings endpoint (`/api/v1/services/embeddings/...`) requires an adapter.
 

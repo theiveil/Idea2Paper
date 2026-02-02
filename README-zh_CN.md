@@ -82,6 +82,8 @@ python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"
 > **约束：** embedding 模型必须输出 **4096 维**向量（与默认 `Qwen/Qwen3-Embedding-8B` 一致）。  
 > **推荐（auto_profile）：** 设置 `I2P_INDEX_DIR_MODE=auto_profile`，系统会按 embedding 配置自动切到专属索引目录：`Paper-KG-Pipeline/output/novelty_index__{provider}__{model}__{urlhash}` 和 `.../recall_index__...`。  
 > 若显式设置 `I2P_NOVELTY_INDEX_DIR` / `I2P_RECALL_INDEX_DIR`（环境变量或 `i2p_config.json`），会优先使用显式值。  
+> **建议（速度/稳定性）：** 建议设置 `I2P_ANCHOR_DENSIFY_ENABLE=0` 以关闭 Adaptive Densify；否则 Phase 3 的 Critic 可能会非常耗时，并且在严格 JSON 校验下更容易因为格式问题失败。  
+> **建议（排障）：** 若反复出现 Critic JSON 格式/解析错误，可设置 `I2P_CRITIC_STRICT_JSON=0`（或 `critic.strict_json=false`）关闭严格模式，允许降级继续运行。  
 > **当前可直接适配（无需改代码）：** 兼容 OpenAI Embeddings API 的 `/v1/embeddings`（要求 `input` 支持字符串或数组，例如 SiliconFlow、OpenAI 及其它 OpenAI-compatible 服务）。  
 > **暂不直接支持：** DashScope/百炼原生 embeddings 接口（`/api/v1/services/embeddings/...`），需要额外适配层。
 
