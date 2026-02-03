@@ -20,6 +20,7 @@
   <br/>
 
   - [📄 Idea2Paper](#-idea2paper)
+  - [💬 User Community](#-user-community)
   - [✨ Key Features](#-key-features)
   - [📦 Outputs](#-outputs)
   - [🚀 Getting Started](#-getting-started)
@@ -61,7 +62,7 @@ reliable autonomous scientific discovery.
 <em>Idea2Story pipeline architecture (a core module within Idea2Paper)</em>
 </div>
 
-## User Community
+## 💬 User Community
 
 | WeChat Group                                                                                | Discord Channel |
 |---------------------------------------------------------------------------------------------| --- |
